@@ -1,0 +1,26 @@
+---
+hams:
+  address: 127.0.0.1:8079
+  prefix: hams
+  logging: true
+  checks:
+    timeout: 5
+    fails: 2
+    preflights: []
+    # - http://localhost:4201
+    shutdowns: []
+runtime:
+  stack_size: 3145728
+  threads: 4
+webservice:
+  prefix: polecatteamsbot
+  address: 0.0.0.0:8080
+  forwarding_headers: []
+persistence:
+  db:
+    pool_size: 20
+    automigrate: true
+    connection:
+      url: postgres://localhost:5432/log4ham-pg-log4ham
+      username_file: db/username
+      password_file: db/password
