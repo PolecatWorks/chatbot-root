@@ -84,3 +84,14 @@ Once you have the API token, update your bot's configuration to use it for authe
 
 - [Microsoft Teams Bot Overview](https://learn.microsoft.com/en-us/microsoftteams/platform/bots/what-are-bots)
 - [API reference for the Bot Framework Connector service](https://learn.microsoft.com/en-us/azure/bot-service/rest-api/bot-framework-rest-connector-api-reference?view=azure-bot-service-4.0)
+
+
+# Setting up local dev
+
+Prepare a referese proxy for using with MS Teams.
+
+## ngrok
+
+Ngrok seems like it provides the relevant reverse proxy capabaility to project to dev laptop.
+
+    brew install ngrok

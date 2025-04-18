@@ -1,5 +1,5 @@
-mod hello;
 mod botapi;
+mod hello;
 
 use botapi::api;
 use log::info;
@@ -49,14 +49,13 @@ pub async fn start_app_api(state: MyState, pool_pg: Pool<Postgres>, ct: Cancella
 
     let weblog = warp::log(NAME);
 
-    let service = warp::path("hello")
-        .and(hello::list(&state));
+    let service = warp::path("hello").and(hello::list(&state));
 
-    let router = prefix_path.and(service)
+    let router = prefix_path
+        .and(service)
         .or(warp::path("api").and(api(&state)))
         .recover(handle_rejection)
         .with(weblog);
-
 
     let (addr, server) = warp::serve(router)
         .bind_with_graceful_shutdown(state.config.webservice.address, async move {
@@ -101,36 +100,36 @@ async fn handle_rejection(err: Rejection) -> std::result::Result<impl Reply, Inf
     } else if let Some(e) = err.find::<MyError>() {
         match e {
             MyError::Message(detail) => {
-                        let error_message = json!({
-                            "errorType": "Message",
-                            "detail": detail,
-                        });
+                let error_message = json!({
+                    "errorType": "Message",
+                    "detail": detail,
+                });
 
-                        (StatusCode::IM_A_TEAPOT, reply::json(&error_message))
-                    }
+                (StatusCode::IM_A_TEAPOT, reply::json(&error_message))
+            }
             MyError::Cancelled => todo!(),
             MyError::Serde(err) => todo!("Serde error: {}", err),
             MyError::Io(err) => todo!("IO error: {}", err),
             MyError::JsonValidation(errors) => {
-                        let myval = serde_json::json!( { "status:": "validation failed","errors": errors});
+                let myval = serde_json::json!( { "status:": "validation failed","errors": errors});
 
-                        (StatusCode::BAD_REQUEST, reply::json(&myval))
-                    }
+                (StatusCode::BAD_REQUEST, reply::json(&myval))
+            }
             MyError::ValidationError() => todo!(),
             MyError::FigmentError(err) => todo!("Figment error: {}", err),
             MyError::SqlxError(err) => {
-                        println!("error is {}", err);
-                        match err {
-                            sqlx::Error::RowNotFound => (
-                                StatusCode::NOT_FOUND,
-                                reply::json(&"Row not found".to_string()),
-                            ),
-                            _ => (
-                                StatusCode::IM_A_TEAPOT,
-                                reply::json(&"DB error".to_string()),
-                            ),
-                        }
-                    }
+                println!("error is {}", err);
+                match err {
+                    sqlx::Error::RowNotFound => (
+                        StatusCode::NOT_FOUND,
+                        reply::json(&"Row not found".to_string()),
+                    ),
+                    _ => (
+                        StatusCode::IM_A_TEAPOT,
+                        reply::json(&"DB error".to_string()),
+                    ),
+                }
+            }
             MyError::PreflightCheck => todo!(),
             MyError::ShutdownCheck => todo!(),
             MyError::SqlxMigrateError(er) => todo!("SQLX Migrate error: {}", er),
@@ -166,5 +165,4 @@ mod tests {
 #[cfg(test)]
 mod test {
     use super::*;
-
 }

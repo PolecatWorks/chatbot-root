@@ -9,10 +9,12 @@ use hamsrs::hams_logger_init;
 use log::{debug, error, info};
 
 use polecatteamsbot::{
-    config::MyConfig, error::MyError, persistence::{start_db_backup, start_db_check_tables, start_db_migrate}, webserver::service_start
+    config::MyConfig,
+    error::MyError,
+    persistence::{start_db_backup, start_db_check_tables, start_db_migrate},
+    webserver::service_start,
 };
 use polecatteamsbot::{NAME, VERSION};
-
 
 /// Application definition to defer to set of commands under [Commands]
 #[derive(Parser)]

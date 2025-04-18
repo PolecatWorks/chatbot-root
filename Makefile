@@ -54,5 +54,11 @@ pg-test-forward:
 	kubectl port-forward pod/pg-test-pod 5432:5432
 
 
-curl-test:
+curl-hello:
 	curl -v http://localhost:8080/polecatteamsbot/hello
+
+curl-messages:
+	curl -v http://localhost:8080/api/messages
+
+curl-messages-post:
+	curl -X POST -H "Content-Type: application/json" -d '{"text": "Hello, world!"}' http://localhost:8080/api/messages
