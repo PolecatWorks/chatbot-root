@@ -20,6 +20,7 @@ use tokio_util::sync::CancellationToken;
 use warp::reject::Reject;
 use webserver::start_app_api;
 
+pub(crate) mod botapi;
 pub mod config;
 pub mod error;
 pub mod hams;

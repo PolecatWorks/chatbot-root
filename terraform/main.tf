@@ -29,38 +29,6 @@ resource "random_password" "bot_password" {
 resource "azurerm_resource_group" "bot_rg" {
   name     = "bot-resource-group"
   location = "West Europe"
-}
-
-resource "azurerm_service_plan" "bot_service_plan" {
-  name                = "bot-service-plan"
-  location            = azurerm_resource_group.bot_rg.location
-  resource_group_name = azurerm_resource_group.bot_rg.name
-  os_type             = "Linux"
-  sku_name            = "F1"
-}
-
-
-
-
-
-resource "azurerm_bot_service_azure_bot" "bot_registration" {
-  name                = "bot-registration"
-  location            = azurerm_resource_group.bot_rg.location
-  resource_group_name = azurerm_resource_group.bot_rg.name
-  microsoft_app_id    = data.azurerm_client_config.current.client_id
-  sku                 = "F0"
-
-  # IMPORTANT: This endpoint URL needs to point to your AKS Ingress
-  # You'll likely need to update this *after* deploying your app and setting up Ingress
-  # For now, use a placeholder. Update later via Azure Portal, CLI, or CI/CD.
-  endpoint = "https://bot.polecatworks.com/api/messages"
-
-  display_name = "Rust Teams Bot"
-
-
-  # developer_app_insights_api_key        = azurerm_application_insights_api_key.example.api_key
-  # developer_app_insights_application_id = azurerm_application_insights.example.app_id
-
 
   tags = {
     environment = "dev"
@@ -68,18 +36,143 @@ resource "azurerm_bot_service_azure_bot" "bot_registration" {
   }
 }
 
-data "azurerm_client_config" "current" {}
+resource "azurerm_log_analytics_workspace" "bot_rg" {
+  name                = "example"
+  location            = azurerm_resource_group.bot_rg.location
+  resource_group_name = azurerm_resource_group.bot_rg.name
+  sku                 = "PerGB2018"
+  retention_in_days   = 30
 
-variable "microsoft_app_id" {
-    type = string
-    default = "abcdef"
+  tags = {
+    environment = "dev"
+    project     = "RustTeamsBot"
+  }
 }
-# variable "microsoft_app_secret" {}
+
+resource "azurerm_application_insights" "bot_rg" {
+  name                = "example-appinsights"
+  location            = azurerm_resource_group.bot_rg.location
+  resource_group_name = azurerm_resource_group.bot_rg.name
+  application_type    = "web"
+
+  workspace_id = azurerm_log_analytics_workspace.bot_rg.id
+
+  tags = {
+    environment = "dev"
+    project     = "RustTeamsBot"
+  }
+}
+
+resource "azurerm_application_insights_api_key" "bot_rg" {
+  name                    = "example-appinsightsapikey"
+  application_insights_id = azurerm_application_insights.bot_rg.id
+  read_permissions        = ["aggregate", "api", "draft", "extendqueries", "search"]
+
+}
+
+
+
+
+resource "azurerm_service_plan" "bot_service_plan" {
+  name                = "bot-service-plan"
+  location            = azurerm_resource_group.bot_rg.location
+  resource_group_name = azurerm_resource_group.bot_rg.name
+  os_type             = "Linux"
+  sku_name            = "F1"
+
+   tags = {
+    environment = "dev"
+    project     = "RustTeamsBot"
+  }
+}
+
+data "azurerm_client_config" "current" {}
+resource "random_uuid" "appid" {}
+
+
+# 1. Create the Azure AD Application for the Bot
+resource "azuread_application" "bot_app" {
+  display_name = "app-teams-bot-rust-prod" # Choose a display name
+  # For multi-tenant bots, set sign_in_audience = "AzureADMultipleOrgs"
+  # For single-tenant (default), it's "AzureADMyOrg"
+}
+
+
+# 2. Create a Client Secret (Password) for the Azure AD Application
+resource "azuread_application_password" "bot_app_password" {
+  application_id =  azuread_application.bot_app.id
+  display_name          = "BOT password managed by Terraform" # Optional description for the secret
+  # Set an expiry date if desired, e.g.:
+  # end_date_relative = "8760h" # 1 year
+}
+
+
+resource "azurerm_bot_service_azure_bot" "bot_registration" {
+  name                = "polecatworks"
+  resource_group_name = azurerm_resource_group.bot_rg.name
+  # location            = "global"
+  location            = azurerm_resource_group.bot_rg.location
+  # microsoft_app_id = random_uuid.appid.id # this worked
+  microsoft_app_id = azuread_application.bot_app.object_id
+
+  # microsoft_app_id    = data.azurerm_client_config.current.client_id
+  sku                 = "F0"
+
+  # IMPORTANT: This endpoint URL needs to point to your AKS Ingress
+  # You'll likely need to update this *after* deploying your app and setting up Ingress
+  # For now, use a placeholder. Update later via Azure Portal, CLI, or CI/CD.
+  endpoint = "https://informally-large-terrier.ngrok-free.app/api/messages"
+
+  display_name = "Rust Teams Bot"
+
+
+  developer_app_insights_api_key        = azurerm_application_insights_api_key.bot_rg.api_key
+  developer_app_insights_application_id = azurerm_application_insights.bot_rg.app_id
+
+  tags = {
+    environment = "dev"
+    project     = "RustTeamsBot"
+  }
+}
+
+
+# (Optional but Recommended) Enable the Teams Channel
+# Check the latest provider docs for direct channel management.
+# If `azurerm_bot_channel_teams` exists and is stable:
+# resource "azurerm_bot_channel_teams" "teams_channel" {
+#   bot_name            = azurerm_bot_service_azurebot.bot_service.name
+#   location            = azurerm_bot_service_azurebot.bot_service.location
+#   resource_group_name = azurerm_resource_group.rg.name
+#   # Add specific Teams channel settings if needed
+# }
+# If not, you might need to enable it manually or via Azure CLI post-deployment.
+
+
+
+output "insight_key" {
+  value = azurerm_application_insights.bot_rg.instrumentation_key
+  sensitive = true
+}
+
+output "insight_id" {
+  value = azurerm_application_insights.bot_rg.app_id
+}
+
 
 output "bot_messaging_endpoint" {
   value = azurerm_bot_service_azure_bot.bot_registration.endpoint
 }
 
-output "bot_messaging_id" {
-  value = azurerm_bot_service_azure_bot.bot_registration.id
+
+# Bot's Microsoft Application ID (Client ID)
+output "bot_microsoft_app_id" {
+  description = "The Client ID of the Azure AD Application for the Bot."
+  value       = azuread_application.bot_app.object_id
+}
+
+# Bot's Microsoft Application Password (Client Secret)
+output "bot_microsoft_app_password" {
+  description = "The Client Secret for the Bot's Azure AD Application. Store securely!"
+  value       = azuread_application_password.bot_app_password.value
+  sensitive   = true # Mark as sensitive to hide from stdout by default
 }

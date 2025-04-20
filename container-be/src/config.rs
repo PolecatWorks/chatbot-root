@@ -94,12 +94,19 @@ impl From<UrlWithUsernamePassword> for Url {
 }
 
 #[derive(Deserialize, Debug, Clone, Default)]
+pub struct Teams {
+    auth: String,
+    id: String,
+}
+
+#[derive(Deserialize, Debug, Clone, Default)]
 pub struct MyConfig {
     /// Config of my web service
     pub hams: HamsConfig,
     pub runtime: ThreadRuntime,
     pub webservice: WebServiceConfig,
     pub persistence: PersistenceConfig,
+    pub teams: Teams,
 }
 
 impl MyConfig {

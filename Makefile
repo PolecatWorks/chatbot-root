@@ -18,10 +18,9 @@ terraform-plan:
 	cd terraform && terraform plan
 
 terraform-apply:
-	cd terraform && terraform apply
+#   add TF_LOG=DEBUG to debug
+	cd terraform &&  terraform apply
 
-ngrok-start:
-	ngrok http http://localhost:8080
 
 
 pg-login:
@@ -52,6 +51,12 @@ pg-docker-test-container:
 
 pg-test-forward:
 	kubectl port-forward pod/pg-test-pod 5432:5432
+
+
+ngrok:
+	ngrok http --url=informally-large-terrier.ngrok-free.app 8080
+ngrok-mgt:
+	open http://127.0.0.1:4040/inspect/http
 
 
 curl-hello:
