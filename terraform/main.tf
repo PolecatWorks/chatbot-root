@@ -18,13 +18,6 @@ provider "azurerm" {
 }
 
 
-resource "random_password" "bot_password" {
-  length           = 32
-  special          = true
-  override_special = "_%@"
-}
-
-
 
 resource "azurerm_resource_group" "bot_rg" {
   name     = "bot-resource-group"
@@ -85,9 +78,6 @@ resource "azurerm_service_plan" "bot_service_plan" {
     project     = "RustTeamsBot"
   }
 }
-
-data "azurerm_client_config" "current" {}
-resource "random_uuid" "appid" {}
 
 
 # 1. Create the Azure AD Application for the Bot
