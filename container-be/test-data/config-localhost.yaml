@@ -27,5 +27,6 @@ persistence:
 teams:
   auth: https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token
   id_file: app/id
-  password_file: app/password
-  openid: https://login.microsoftonline.com/1fd80b61-a805-4a57-879b-45ddb39a660d/v2.0/.well-known/openid-configuration
+  secret_file: app/secret
+  openid: https://login.microsoftonline.com/1fd80b61-a805-4a57-879b-45ddb39a660d/v2.0
+  # /.well-known/openid-configuration

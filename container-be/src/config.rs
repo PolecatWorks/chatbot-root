@@ -69,7 +69,8 @@ use serde::Deserialize;
 use url::Url;
 
 use crate::{
-    persistence::PersistenceConfig, tokio_tools::ThreadRuntime, webserver::WebServiceConfig,
+    botapi::TeamsConfig, persistence::PersistenceConfig, tokio_tools::ThreadRuntime,
+    webserver::WebServiceConfig,
 };
 
 #[derive(Deserialize, Debug, Clone)]
@@ -94,19 +95,13 @@ impl From<UrlWithUsernamePassword> for Url {
 }
 
 #[derive(Deserialize, Debug, Clone, Default)]
-pub struct Teams {
-    auth: String,
-    id: String,
-}
-
-#[derive(Deserialize, Debug, Clone, Default)]
 pub struct MyConfig {
     /// Config of my web service
     pub hams: HamsConfig,
     pub runtime: ThreadRuntime,
     pub webservice: WebServiceConfig,
     pub persistence: PersistenceConfig,
-    pub teams: Teams,
+    pub teams: TeamsConfig,
 }
 
 impl MyConfig {

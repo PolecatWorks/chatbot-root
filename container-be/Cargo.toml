@@ -34,3 +34,4 @@ hamsrs = { git = "https://github.com/PolecatWorks/hams.git" }
 ffi-log2 = { git = "https://github.com/PolecatWorks/hams.git" }
 derive_builder = "0.20.2"
 prometheus = "0.14.0"
+openidconnect = "4.0.0"

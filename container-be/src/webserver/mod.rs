@@ -136,6 +136,8 @@ async fn handle_rejection(err: Rejection) -> std::result::Result<impl Reply, Inf
             MyError::PrometheusError(err) => todo!("Prometheus error: {}", err),
             MyError::HamsError(err) => todo!("HaMs error: {}", err),
             MyError::ParquetError(err) => todo!("Parquet error: {}", err),
+            MyError::ParseError(err) => todo!("UrlParse error {}", err),
+            MyError::DiscoveryError(discovery_error) => todo!("Discovery errro {:?}", err),
         }
     } else {
         eprintln!("unhandled error: {:?}", err);

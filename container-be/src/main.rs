@@ -9,9 +9,11 @@ use hamsrs::hams_logger_init;
 use log::{debug, error, info};
 
 use polecatteamsbot::{
+    botapi::test_connection,
     config::MyConfig,
     error::MyError,
     persistence::{start_db_backup, start_db_check_tables, start_db_migrate},
+    tokio_tools::run_in_tokio,
     webserver::service_start,
 };
 use polecatteamsbot::{NAME, VERSION};
@@ -31,6 +33,15 @@ enum Commands {
     Version,
     /// Migrate the sql actions to the DB
     Migrate {
+        /// Sets a custom config file
+        #[arg(short, long, value_name = "FILE")]
+        config: PathBuf,
+        /// Sets a custom secrets directory
+        #[arg(short, long, value_name = "DIR", default_value = PathBuf::from("secrets").into_os_string())]
+        secrets: PathBuf,
+    },
+    /// Test App Auth
+    AppAuth {
         /// Sets a custom config file
         #[arg(short, long, value_name = "FILE")]
         config: PathBuf,
@@ -88,6 +99,20 @@ fn main() -> Result<ExitCode, MyError> {
         Commands::Version => {
             info!("Version: {NAME}:{VERSION}");
             info!("HaMs Version: {}", hamsrs::hams_version());
+        }
+        Commands::AppAuth { config, secrets } => {
+            info!("Testing Auth {NAME}:{VERSION}");
+
+            let config_yaml = std::fs::read_to_string(config.clone())?;
+
+            let config: MyConfig = MyConfig::figment(&config_yaml, secrets)
+                .extract()
+                .unwrap_or_else(|err| {
+                    error!("Config file {config:?} failed with error \n{err:#?}");
+                    panic!("Config failed to load");
+                });
+
+            run_in_tokio("App Aauth", &config.runtime, test_connection(&config.teams))?;
         }
         Commands::Start { config, secrets } => {
             info!("Starting {NAME}:{VERSION}");

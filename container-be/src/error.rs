@@ -42,4 +42,10 @@ pub enum MyError {
     PrometheusError(#[from] prometheus::Error),
     #[error("HaMs error `{0}`")]
     HamsError(#[from] HamsError),
+    #[error("ParseError `{0}`")]
+    ParseError(#[from] url::ParseError),
+    #[error("DiscoveryError `{0}`")]
+    DiscoveryError(
+        #[from] openidconnect::DiscoveryError<openidconnect::HttpClientError<reqwest::Error>>,
+    ),
 }

@@ -12,6 +12,7 @@ use std::{
 use config::MyConfig;
 use error::MyError;
 use hamsrs::Hams;
+
 use metrics::{prometheus_response, prometheus_response_free};
 use persistence::PersistenceState;
 use prometheus::{IntGauge, Registry};
@@ -20,7 +21,7 @@ use tokio_util::sync::CancellationToken;
 use warp::reject::Reject;
 use webserver::start_app_api;
 
-pub(crate) mod botapi;
+pub mod botapi;
 pub mod config;
 pub mod error;
 pub mod hams;
