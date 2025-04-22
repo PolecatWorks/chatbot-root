@@ -48,4 +48,6 @@ pub enum MyError {
     DiscoveryError(
         #[from] openidconnect::DiscoveryError<openidconnect::HttpClientError<reqwest::Error>>,
     ),
+    #[error("ReqwestError `{0}`")]
+    ReqwestError(#[from] reqwest::Error),
 }

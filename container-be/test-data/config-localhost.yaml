@@ -25,8 +25,9 @@ persistence:
       username_file: db/username
       password_file: db/password
 teams:
-  auth: https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token
+  bot_endpoint: https://informally-large-terrier.ngrok-free.app/api/messages
   id_file: app/id
   secret_file: app/secret
-  openid: https://login.microsoftonline.com/1fd80b61-a805-4a57-879b-45ddb39a660d/v2.0
+  tenant_id: 1fd80b61-a805-4a57-879b-45ddb39a660d
+  auth_endpoint: https://login.microsoftonline.com/1fd80b61-a805-4a57-879b-45ddb39a660d/v2.0
   # /.well-known/openid-configuration

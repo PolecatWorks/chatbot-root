@@ -4,9 +4,9 @@ mod hello;
 use botapi::api;
 use log::info;
 
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::Deserialize;
 use serde_json::json;
-use sqlx::{types::Decimal, Pool, Postgres};
+use sqlx::{Pool, Postgres};
 use std::{convert::Infallible, net::SocketAddr, path::PathBuf};
 use tokio_util::sync::CancellationToken;
 use warp::{
@@ -132,12 +132,13 @@ async fn handle_rejection(err: Rejection) -> std::result::Result<impl Reply, Inf
             }
             MyError::PreflightCheck => todo!(),
             MyError::ShutdownCheck => todo!(),
-            MyError::SqlxMigrateError(er) => todo!("SQLX Migrate error: {}", er),
+            MyError::SqlxMigrateError(error) => todo!("SQLX Migrate error: {}", error),
             MyError::PrometheusError(err) => todo!("Prometheus error: {}", err),
             MyError::HamsError(err) => todo!("HaMs error: {}", err),
             MyError::ParquetError(err) => todo!("Parquet error: {}", err),
             MyError::ParseError(err) => todo!("UrlParse error {}", err),
-            MyError::DiscoveryError(discovery_error) => todo!("Discovery errro {:?}", err),
+            MyError::DiscoveryError(error) => todo!("Discovery errro {:?}", error),
+            MyError::ReqwestError(error) => todo!("Reqwest error: {}", error),
         }
     } else {
         eprintln!("unhandled error: {:?}", err);

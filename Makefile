@@ -24,8 +24,10 @@ terraform-plan:
 
 terraform-apply:
 #   add TF_LOG=DEBUG to debug
-	cd terraform &&  terraform apply
+	cd terraform && terraform apply
 
+terraform-destroy:
+	cd terraform && terraform destroy
 
 
 pg-login:
