@@ -9,10 +9,14 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use botapi::{maintain_access_token, Teams};
 use config::MyConfig;
 use error::MyError;
 use hamsrs::Hams;
+use openidconnect::IssuerUrl;
+use reqwest::Client;
 
+use log::info;
 use metrics::{prometheus_response, prometheus_response_free};
 use persistence::PersistenceState;
 use prometheus::{IntGauge, Registry};
@@ -42,14 +46,16 @@ impl Reject for MyError {}
 pub struct MyState {
     config: MyConfig,
     db_state: PersistenceState,
+    ct: CancellationToken,
     pub count_good: Arc<Mutex<usize>>,
     pub count_fail: Arc<Mutex<usize>>,
     registry: Registry,
     hello_counter: IntGauge,
+    pub teams: Teams,
 }
 
 impl MyState {
-    pub async fn new(config: &MyConfig) -> Result<MyState, MyError> {
+    pub async fn new(config: &MyConfig, ct: CancellationToken) -> Result<MyState, MyError> {
         let db_state = PersistenceState::new(&config.persistence).await?;
 
         let registry = Registry::new();
@@ -61,16 +67,18 @@ impl MyState {
         Ok(MyState {
             config: config.clone(),
             db_state,
+            ct,
             count_good: Arc::new(Mutex::new(0)),
             count_fail: Arc::new(Mutex::new(0)),
             registry,
             hello_counter,
+            teams: Teams::default(),
         })
     }
 }
 
 pub async fn service_cancellable(ct: CancellationToken, config: &MyConfig) -> Result<(), MyError> {
-    let state = MyState::new(config).await?;
+    let state = MyState::new(config, ct.clone()).await?;
 
     let pool_pg = state.db_state.pool_pg.clone();
 
@@ -91,6 +99,9 @@ pub async fn service_cancellable(ct: CancellationToken, config: &MyConfig) -> Re
 
     hams.start().unwrap();
 
+    let state0 = state.clone();
+    let access_auth_handler = tokio::spawn(async move { maintain_access_token(state0).await });
+
     let server = start_app_api(state.clone(), pool_pg, ct.clone());
 
     server.await;
@@ -99,6 +110,7 @@ pub async fn service_cancellable(ct: CancellationToken, config: &MyConfig) -> Re
     hams.deregister_prometheus()?;
 
     ct.cancel();
+    let _ = access_auth_handler.await?;
 
     Ok(())
 }

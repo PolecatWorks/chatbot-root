@@ -44,10 +44,16 @@ pub enum MyError {
     HamsError(#[from] HamsError),
     #[error("ParseError `{0}`")]
     ParseError(#[from] url::ParseError),
+    #[error("Tokio Join error `{0}`")]
+    JoinError(#[from] tokio::task::JoinError),
+    #[error("openidconnect::ConfigurationError error `{0}`")]
+    ConfigurationError(#[from] openidconnect::ConfigurationError),
     #[error("DiscoveryError `{0}`")]
     DiscoveryError(
         #[from] openidconnect::DiscoveryError<openidconnect::HttpClientError<reqwest::Error>>,
     ),
     #[error("ReqwestError `{0}`")]
     ReqwestError(#[from] reqwest::Error),
+    #[error("RequestToken error `{0}`")]
+    RequestTokenError(String),
 }

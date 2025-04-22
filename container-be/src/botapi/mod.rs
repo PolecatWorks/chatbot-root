@@ -1,3 +1,5 @@
+use std::{sync::Arc, time::Duration};
+
 use log::info;
 use openidconnect::{
     core::{CoreClient, CoreProviderMetadata},
@@ -5,9 +7,10 @@ use openidconnect::{
 };
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use tokio::sync::Mutex;
 use url::Url;
 
-use crate::{config::MyConfig, error::MyError};
+use crate::{config::MyConfig, error::MyError, MyState};
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -63,8 +66,13 @@ pub struct TeamsConfig {
     auth_endpoint: Url,
     bot_endpoint: Url,
     tenant_id: String,
+    scopes: Vec<String>,
     id: String,
     secret: String,
+    #[serde(with = "humantime_serde")]
+    pub auth_sleep: Duration,
+    #[serde(with = "humantime_serde")]
+    pub auth_margin: Duration,
 }
 
 impl Default for TeamsConfig {
@@ -73,10 +81,84 @@ impl Default for TeamsConfig {
             auth_endpoint: Url::parse("https://localhost").unwrap(),
             bot_endpoint: Url::parse("https://localhost").unwrap(),
             tenant_id: Default::default(),
+            scopes: vec![],
             id: Default::default(),
             secret: Default::default(),
+            auth_sleep: Duration::from_secs(60),
+            auth_margin: Duration::from_secs(60),
         }
     }
+}
+
+#[derive(Default, Debug, Clone)]
+pub struct Teams {
+    pub access_token: Arc<Mutex<Option<String>>>,
+}
+
+pub async fn maintain_access_token(state: MyState) -> Result<(), MyError> {
+    let config = state.config.teams.clone();
+
+    let client = Client::new();
+    let issuer_url = IssuerUrl::new(state.config.teams.auth_endpoint.as_str().to_owned())?;
+
+    let provider_metadata = CoreProviderMetadata::discover_async(
+        issuer_url, // The base URL of the provider
+        &client,    // The HTTP client function
+                    // If using openidconnect v2.x: reqwest::async_http_client
+    )
+    .await?;
+
+    info!("Issuer: {}", provider_metadata.clone().issuer().as_str());
+
+    let client_id = ClientId::new(config.id.clone());
+    let client_secret = ClientSecret::new(config.secret.clone());
+
+    let client_request = CoreClient::from_provider_metadata(
+        provider_metadata.clone(), // Metadata fetched earlier
+        client_id,
+        Some(client_secret), // Needed later for code exchange
+    );
+
+    while !state.ct.is_cancelled() {
+        // If we are cancelled, break out of the loop
+        // Try to get the token. If we feil we will sleep for a bit and try again
+        // If we get it then we will update the token object in the state AND update the liveness check AND we set the token to None
+
+        let token_response = {
+            let mut token_query = client_request
+                .exchange_client_credentials()?
+                .add_scopes(config.scopes.iter().map(|s| Scope::new(s.to_owned())));
+
+            let token_response = token_query.request_async(&client).await.map_err(|error| {
+                info!("Error getting token: {:?}", error);
+                MyError::RequestTokenError(error.to_string())
+            })?;
+
+            Ok::<_, MyError>(token_response)
+            // Ok(token_response)
+        };
+
+        match token_response {
+            Ok(token_response) => {
+                info!("Token expires in: {:?}", token_response.expires_in());
+
+                *state.teams.access_token.lock().await =
+                    Some(token_response.access_token().secret().to_string());
+                // TODO: Add liveness check into this loop
+                let refresh_wait = token_response.expires_in().unwrap() - config.auth_margin;
+                tokio::time::sleep(refresh_wait).await;
+            }
+            Err(error) => {
+                info!(
+                    "Error getting token,{} trying again in {:?}",
+                    error, config.auth_sleep
+                );
+                tokio::time::sleep(config.auth_sleep).await;
+            }
+        }
+    }
+
+    Ok(())
 }
 
 pub async fn test_connection(config: &TeamsConfig) -> Result<(), MyError> {

@@ -35,3 +35,4 @@ ffi-log2 = { git = "https://github.com/PolecatWorks/hams.git" }
 derive_builder = "0.20.2"
 prometheus = "0.14.0"
 openidconnect = "4.0.0"
+humantime-serde = "1.1"

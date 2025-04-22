@@ -139,6 +139,9 @@ async fn handle_rejection(err: Rejection) -> std::result::Result<impl Reply, Inf
             MyError::ParseError(err) => todo!("UrlParse error {}", err),
             MyError::DiscoveryError(error) => todo!("Discovery errro {:?}", error),
             MyError::ReqwestError(error) => todo!("Reqwest error: {}", error),
+            MyError::JoinError(error) => todo!("Join error: {}", error),
+            MyError::ConfigurationError(error) => todo!("Configuration error: {}", error),
+            MyError::RequestTokenError(error) => todo!("RequestToken error: {}", error),
         }
     } else {
         eprintln!("unhandled error: {:?}", err);
