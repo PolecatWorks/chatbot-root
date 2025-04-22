@@ -29,39 +29,39 @@ resource "azurerm_resource_group" "bot_rg" {
   }
 }
 
-resource "azurerm_log_analytics_workspace" "bot_rg" {
-  name                = "example"
-  location            = azurerm_resource_group.bot_rg.location
-  resource_group_name = azurerm_resource_group.bot_rg.name
-  sku                 = "PerGB2018"
-  retention_in_days   = 30
+# resource "azurerm_log_analytics_workspace" "bot_rg" {
+#   name                = "example"
+#   location            = azurerm_resource_group.bot_rg.location
+#   resource_group_name = azurerm_resource_group.bot_rg.name
+#   sku                 = "PerGB2018"
+#   retention_in_days   = 30
 
-  tags = {
-    environment = "dev"
-    project     = "RustTeamsBot"
-  }
-}
+#   tags = {
+#     environment = "dev"
+#     project     = "RustTeamsBot"
+#   }
+# }
 
-resource "azurerm_application_insights" "bot_rg" {
-  name                = "example-appinsights"
-  location            = azurerm_resource_group.bot_rg.location
-  resource_group_name = azurerm_resource_group.bot_rg.name
-  application_type    = "web"
+# resource "azurerm_application_insights" "bot_rg" {
+#   name                = "example-appinsights"
+#   location            = azurerm_resource_group.bot_rg.location
+#   resource_group_name = azurerm_resource_group.bot_rg.name
+#   application_type    = "web"
 
-  workspace_id = azurerm_log_analytics_workspace.bot_rg.id
+#   workspace_id = azurerm_log_analytics_workspace.bot_rg.id
 
-  tags = {
-    environment = "dev"
-    project     = "RustTeamsBot"
-  }
-}
+#   tags = {
+#     environment = "dev"
+#     project     = "RustTeamsBot"
+#   }
+# }
 
-resource "azurerm_application_insights_api_key" "bot_rg" {
-  name                    = "example-appinsightsapikey"
-  application_insights_id = azurerm_application_insights.bot_rg.id
-  read_permissions        = ["aggregate", "api", "draft", "extendqueries", "search"]
+# resource "azurerm_application_insights_api_key" "bot_rg" {
+#   name                    = "example-appinsightsapikey"
+#   application_insights_id = azurerm_application_insights.bot_rg.id
+#   read_permissions        = ["aggregate", "api", "draft", "extendqueries", "search"]
 
-}
+# }
 
 
 
@@ -85,6 +85,25 @@ resource "azuread_application" "bot_app" {
   display_name = "app-teams-bot-rust-prod" # Choose a display name
   # For multi-tenant bots, set sign_in_audience = "AzureADMultipleOrgs"
   # For single-tenant (default), it's "AzureADMyOrg"
+  identifier_uris = [
+    "api://87de8678-74cc-4a80-8987-ce00baf25087"
+   ]
+  required_resource_access {
+    resource_app_id = "00000003-0000-0000-c000-000000000000"
+
+           resource_access { # https://graph.microsoft.com/email
+               id   = "64a6cdd6-aab1-4aaf-94b8-3cc8405e90d0"
+               type = "Scope"
+            }
+           resource_access { # https://graph.microsoft.com/openid
+               id   = "37f7f235-527c-4136-accd-4a02d197296e"
+               type = "Scope"
+            }
+           resource_access { # https://graph.microsoft.com/profile
+               id   = "14dad69e-099b-42c9-810b-d002981feec1"
+               type = "Scope"
+            }
+  }
 }
 
 
@@ -97,33 +116,52 @@ resource "azuread_application_password" "bot_app_password" {
 }
 
 
-resource "azurerm_bot_service_azure_bot" "bot_registration" {
-  name                = "polecatworks"
+# resource "azurerm_bot_service_azure_bot" "bot_registration" {
+#   name                = "polecatworks"
+#   resource_group_name = azurerm_resource_group.bot_rg.name
+#   # location            = "global"
+#   location            = azurerm_resource_group.bot_rg.location
+#   # microsoft_app_id = random_uuid.appid.id # this worked
+#   microsoft_app_id = azuread_application.bot_app.object_id
+
+#   # microsoft_app_type = "SingleTenant"
+
+#   # microsoft_app_id    = data.azurerm_client_config.current.client_id
+#   sku                 = "F0"
+
+#   # IMPORTANT: This endpoint URL needs to point to your AKS Ingress
+#   # You'll likely need to update this *after* deploying your app and setting up Ingress
+#   # For now, use a placeholder. Update later via Azure Portal, CLI, or CI/CD.
+#   endpoint = "https://informally-large-terrier.ngrok-free.app/api/messages"
+
+#   display_name = "Rust Teams Bot"
+
+
+#   # developer_app_insights_api_key        = azurerm_application_insights_api_key.bot_rg.api_key
+#   # developer_app_insights_application_id = azurerm_application_insights.bot_rg.app_id
+
+#   tags = {
+#     environment = "dev"
+#     project     = "RustTeamsBot"
+#   }
+# }
+
+
+resource "azurerm_bot_web_app" "example" {
+  name                = "polecatworks-app"
+  location            = "global"
   resource_group_name = azurerm_resource_group.bot_rg.name
-  # location            = "global"
-  location            = azurerm_resource_group.bot_rg.location
-  # microsoft_app_id = random_uuid.appid.id # this worked
-  microsoft_app_id = azuread_application.bot_app.object_id
-
-  # microsoft_app_id    = data.azurerm_client_config.current.client_id
   sku                 = "F0"
+  microsoft_app_id    = azuread_application.bot_app.object_id
 
-  # IMPORTANT: This endpoint URL needs to point to your AKS Ingress
-  # You'll likely need to update this *after* deploying your app and setting up Ingress
-  # For now, use a placeholder. Update later via Azure Portal, CLI, or CI/CD.
   endpoint = "https://informally-large-terrier.ngrok-free.app/api/messages"
 
-  display_name = "Rust Teams Bot"
-
-
-  developer_app_insights_api_key        = azurerm_application_insights_api_key.bot_rg.api_key
-  developer_app_insights_application_id = azurerm_application_insights.bot_rg.app_id
-
-  tags = {
+   tags = {
     environment = "dev"
     project     = "RustTeamsBot"
   }
 }
+
 
 
 # (Optional but Recommended) Enable the Teams Channel
@@ -139,25 +177,24 @@ resource "azurerm_bot_service_azure_bot" "bot_registration" {
 
 
 
-output "insight_key" {
-  value = azurerm_application_insights.bot_rg.instrumentation_key
-  sensitive = true
-}
+# output "insight_key" {
+#   value = azurerm_application_insights.bot_rg.instrumentation_key
+#   sensitive = true
+# }
 
-output "insight_id" {
-  value = azurerm_application_insights.bot_rg.app_id
-}
+# output "insight_id" {
+#   value = azurerm_application_insights.bot_rg.app_id
+# }
 
 
 output "bot_messaging_endpoint" {
-  value = azurerm_bot_service_azure_bot.bot_registration.endpoint
+  value = azurerm_bot_web_app.example.endpoint
 }
-
 
 # Bot's Microsoft Application ID (Client ID)
 output "bot_microsoft_app_id" {
   description = "The Client ID of the Azure AD Application for the Bot."
-  value       = azuread_application.bot_app.object_id
+  value       = azuread_application.bot_app.client_id
 }
 
 # Bot's Microsoft Application Password (Client Secret)
