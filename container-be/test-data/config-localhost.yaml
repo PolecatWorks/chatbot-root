@@ -29,9 +29,18 @@ teams:
   id_file: app/id
   secret_file: app/secret
   tenant_id: 1fd80b61-a805-4a57-879b-45ddb39a660d
-  scopes:
-    - api://87de8678-74cc-4a80-8987-ce00baf25087/.default
+  # scope: api://87de8678-74cc-4a80-8987-ce00baf25087/.default
+  # scope: https://europe.webchat.botframework.com/.default
+  scope: https://api.botframework.com/.default
+  # scope: https://graph.microsoft.com/.default
+  # scopes:
+  #   - api://87de8678-74cc-4a80-8987-ce00baf25087/.default
+  #   # - offline_access
+  #   # - openid
+  #   # - profile
+  #   - https://graph.microsoft.com/.default
+  #   - https://api.botframework.com/.default
   auth_endpoint: https://login.microsoftonline.com/1fd80b61-a805-4a57-879b-45ddb39a660d/v2.0
   # /.well-known/openid-configuration
   auth_sleep: 30s
-  auth_margin: 3580s
+  auth_margin: 30s

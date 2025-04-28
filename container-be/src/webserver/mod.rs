@@ -2,7 +2,8 @@ mod botapi;
 mod hello;
 
 use botapi::api;
-use log::info;
+use clap::error;
+use log::{error, info};
 
 use serde::Deserialize;
 use serde_json::json;
@@ -107,7 +108,16 @@ async fn handle_rejection(err: Rejection) -> std::result::Result<impl Reply, Inf
 
                 (StatusCode::IM_A_TEAPOT, reply::json(&error_message))
             }
+            MyError::DynamicMessage(detail) => {
+                let error_message = json!({
+                    "errorType": "DynamicMessage",
+                    "detail": detail,
+                });
+                error!("DynamicMessage: {}", detail);
+                (StatusCode::IM_A_TEAPOT, reply::json(&error_message))
+            }
             MyError::Cancelled => todo!(),
+            MyError::AttributeNotFound(name) => todo!("Attribute not found: {}", name),
             MyError::Serde(err) => todo!("Serde error: {}", err),
             MyError::Io(err) => todo!("IO error: {}", err),
             MyError::JsonValidation(errors) => {
@@ -142,6 +152,7 @@ async fn handle_rejection(err: Rejection) -> std::result::Result<impl Reply, Inf
             MyError::JoinError(error) => todo!("Join error: {}", error),
             MyError::ConfigurationError(error) => todo!("Configuration error: {}", error),
             MyError::RequestTokenError(error) => todo!("RequestToken error: {}", error),
+            MyError::BuilderError(error) => todo!("Builder error: {}", error),
         }
     } else {
         eprintln!("unhandled error: {:?}", err);

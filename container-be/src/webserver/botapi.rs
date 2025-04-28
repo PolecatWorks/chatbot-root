@@ -2,7 +2,10 @@ use log::{error, info};
 use serde::Deserialize;
 use warp::Filter;
 
-use crate::{botapi::Activity, MyState};
+use crate::{
+    botapi::{handlers::message_post, Activity, BotResponses},
+    MyState,
+};
 
 use super::with_state;
 
@@ -32,32 +35,32 @@ pub fn message_post_structured(
         .and(warp::header::optional::<String>("authorization")) // Get Authorization header
         .and(warp::body::json()) // Expect JSON body, parse into Activity
         .and(with_state(state.clone()))
-        .and_then(
-            |auth: Option<String>, body: Activity, state: MyState| async move {
-                info!("Structured POST");
-                info!("Authorization: {:?}", auth);
-                info!("Body: {:?}", body);
+        .and_then(message_post)
+    //     |auth: Option<String>, body: Message, state: MyState| async move {
+    //         info!("Structured POST");
+    //         info!("Authorization: {:?}", auth);
+    //         info!("Body: {:?}", body);
 
-                info!("You sent a message: {}", body.text);
-                info!("Using teams as : {:?}", state.config.teams);
+    //         // info!("You sent a message: {}", body.activity.text);
+    //         info!("Using teams as : {:?}", state.config.teams);
 
-                Ok::<_, warp::Rejection>(warp::reply::json(&"POST messages"))
-            },
-        )
+    //         Ok::<_, warp::Rejection>(warp::reply::json(&"POST messages"))
+    //     },
+    // )
 }
 
-pub fn messages_post(
-    state: &MyState,
-) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
-    warp::post()
-        .and(warp::header::optional::<String>("authorization")) // Get Authorization header
-        .and(warp::body::json()) // Expect JSON body, parse into Activity
-        .and_then(|auth: Option<String>, body: serde_json::Value| async move {
-            info!("Authorization: {:?}", auth);
-            info!("Body: {:?}", body);
-            Ok::<_, warp::Rejection>(warp::reply::json(&"POST messages"))
-        })
-}
+// pub fn messages_post(
+//     state: &MyState,
+// ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
+//     warp::post()
+//         .and(warp::header::optional::<String>("authorization")) // Get Authorization header
+//         .and(warp::body::json()) // Expect JSON body, parse into Activity
+//         .and_then(|auth: Option<String>, body: serde_json::Value| async move {
+//             info!("Authorization: {:?}", auth);
+//             info!("Body: {:?}", body);
+//             Ok::<_, warp::Rejection>(warp::reply::json(&"POST messages"))
+//         })
+// }
 
 mod handlers {
     use log::info;

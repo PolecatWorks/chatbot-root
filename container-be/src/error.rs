@@ -12,8 +12,12 @@ use thiserror::Error;
 pub enum MyError {
     #[error("General error `{0}`")]
     Message(&'static str),
+    #[error("Dynamic error `{0}`")]
+    DynamicMessage(String),
     #[error("Service Cancelled")]
     Cancelled,
+    #[error("Attribute not found `{0}`")]
+    AttributeNotFound(&'static str),
     #[error("Serdes error `{0}`")]
     Serde(#[from] serde_json::Error),
     #[error("data store disconnected")]
@@ -56,4 +60,6 @@ pub enum MyError {
     ReqwestError(#[from] reqwest::Error),
     #[error("RequestToken error `{0}`")]
     RequestTokenError(String),
+    #[error("BuilderError `{0}`")]
+    BuilderError(String),
 }

@@ -29,12 +29,15 @@ mod tests {
     use crate::config::MyConfig;
 
     use super::*;
+    use tokio_util::sync::CancellationToken;
     use warp::test::request;
 
     #[tokio::test]
     async fn test_hello() {
         let config = MyConfig::default();
-        let state = MyState::new(&config).await.unwrap();
+        let ct = CancellationToken::new();
+
+        let state = MyState::new(&config, ct.clone()).await.unwrap();
         let response = request()
             .method("GET")
             .path("/")

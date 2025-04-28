@@ -14,6 +14,8 @@ watch-run:
 watch-app-auth:
 	cd ${BE_DIR} && DATABASE_URL=${DATABASE_URL} cargo watch  -x "run -- app-auth --config test-data/config-localhost.yaml --secrets test-data/secrets"
 
+watch-test:
+	cd ${BE_DIR} && DATABASE_URL=${DATABASE_URL} cargo watch --ignore test_data -x "test"
 
 
 terraform-init:

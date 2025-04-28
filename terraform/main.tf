@@ -86,7 +86,7 @@ resource "azuread_application" "bot_app" {
   # For multi-tenant bots, set sign_in_audience = "AzureADMultipleOrgs"
   # For single-tenant (default), it's "AzureADMyOrg"
   identifier_uris = [
-    "api://87de8678-74cc-4a80-8987-ce00baf25087"
+    # "api://87de8678-74cc-4a80-8987-ce00baf25087"
    ]
   required_resource_access {
     resource_app_id = "00000003-0000-0000-c000-000000000000"
@@ -116,51 +116,57 @@ resource "azuread_application_password" "bot_app_password" {
 }
 
 
-# resource "azurerm_bot_service_azure_bot" "bot_registration" {
-#   name                = "polecatworks"
-#   resource_group_name = azurerm_resource_group.bot_rg.name
-#   # location            = "global"
+# resource "azurerm_application_insights" "example" {
+#   name                = "example-appinsights"
 #   location            = azurerm_resource_group.bot_rg.location
-#   # microsoft_app_id = random_uuid.appid.id # this worked
-#   microsoft_app_id = azuread_application.bot_app.object_id
+#   resource_group_name = azurerm_resource_group.bot_rg.name
+#   application_type    = "web"
+# }
 
-#   # microsoft_app_type = "SingleTenant"
-
-#   # microsoft_app_id    = data.azurerm_client_config.current.client_id
-#   sku                 = "F0"
-
-#   # IMPORTANT: This endpoint URL needs to point to your AKS Ingress
-#   # You'll likely need to update this *after* deploying your app and setting up Ingress
-#   # For now, use a placeholder. Update later via Azure Portal, CLI, or CI/CD.
-#   endpoint = "https://informally-large-terrier.ngrok-free.app/api/messages"
-
-#   display_name = "Rust Teams Bot"
-
-
-#   # developer_app_insights_api_key        = azurerm_application_insights_api_key.bot_rg.api_key
-#   # developer_app_insights_application_id = azurerm_application_insights.bot_rg.app_id
-
-#   tags = {
-#     environment = "dev"
-#     project     = "RustTeamsBot"
-#   }
+# resource "azurerm_application_insights_api_key" "example" {
+#   name                    = "example-appinsightsapikey"
+#   application_insights_id = azurerm_application_insights.example.id
+#   read_permissions        = ["aggregate", "api", "draft", "extendqueries", "search"]
 # }
 
 
-resource "azurerm_bot_web_app" "example" {
-  name                = "polecatworks-app"
-  location            = "global"
+
+resource "azurerm_bot_service_azure_bot" "example" {
+  name                = "polecatworks"
+  location            = azurerm_resource_group.bot_rg.location
   resource_group_name = azurerm_resource_group.bot_rg.name
   sku                 = "F0"
-  microsoft_app_id    = azuread_application.bot_app.object_id
+  microsoft_app_id = azuread_application.bot_app.object_id
 
   endpoint = "https://informally-large-terrier.ngrok-free.app/api/messages"
 
-   tags = {
+  display_name = "Rust Teams Bot"
+
+  # developer_app_insights_api_key        = azurerm_application_insights_api_key.example.api_key
+  # developer_app_insights_application_id = azurerm_application_insights.example.app_id
+
+
+  tags = {
     environment = "dev"
     project     = "RustTeamsBot"
   }
 }
+
+
+# resource "azurerm_bot_web_app" "example" {
+#   name                = "polecatworks-app"
+#   location            = "global"
+#   resource_group_name = azurerm_resource_group.bot_rg.name
+#   sku                 = "F0"
+#   microsoft_app_id    = azuread_application.bot_app.object_id
+
+#   endpoint = "https://informally-large-terrier.ngrok-free.app/api/messages"
+
+#    tags = {
+#     environment = "dev"
+#     project     = "RustTeamsBot"
+#   }
+# }
 
 
 
@@ -188,7 +194,7 @@ resource "azurerm_bot_web_app" "example" {
 
 
 output "bot_messaging_endpoint" {
-  value = azurerm_bot_web_app.example.endpoint
+  value = azurerm_bot_service_azure_bot.example.endpoint
 }
 
 # Bot's Microsoft Application ID (Client ID)

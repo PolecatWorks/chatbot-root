@@ -1,5 +1,8 @@
+pub mod handlers;
+
 use std::{sync::Arc, time::Duration};
 
+use derive_builder::Builder;
 use log::info;
 use openidconnect::{
     core::{CoreClient, CoreProviderMetadata},
@@ -10,44 +13,115 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
 use url::Url;
 
-use crate::{config::MyConfig, error::MyError, MyState};
+use crate::{error::MyError, MyState};
 
 #[derive(Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Activity {
-    pub r#type: String,
-    pub id: String,
-    pub timestamp: String,
-    pub local_timestamp: String,
-    pub local_timezone: String,
-    pub service_url: String,
-    pub channel_id: String,
-    pub from: User,
-    pub conversation: Conversation,
-    pub recipient: User,
-    pub text_format: String,
-    pub locale: String,
-    pub text: String,
-    pub attachments: Vec<Attachment>,
-    pub entities: Option<Vec<Entity>>,
-    pub channel_data: ChannelData,
+#[serde(tag = "type")]
+pub enum BotResponses {
+    // #[serde(alias = "message")]
+    // // #[serde(rename="invoke")]
+    // Activity(Activity),
+    #[serde(alias = "conversationUpdate")]
+    ConversationUpdate(ConversationUpdate),
+    #[serde(rename = "message")]
+    Message(Message),
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ConversationUpdate {
+    pub id: String,
+    pub timestamp: String,
+    pub service_url: Option<Url>,
+    pub channel_id: String,
+    pub from: Recipient,
+    pub conversation: Conversation,
+    pub recipient: Recipient,
+    pub members_added: Vec<Recipient>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Builder, Default)]
+#[serde(rename_all = "camelCase")]
+#[builder(default)]
+pub struct Message {
+    pub service_url: Option<Url>,
+    pub channel_id: String,
+    pub from: Recipient,
+    pub conversation: Conversation,
+    pub recipient: Recipient,
+    pub locale: String,
+    pub text: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub text_format: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub input_hint: Option<String>,
+    pub id: String,
+    pub local_timestamp: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub local_timezone: Option<String>,
+    pub timestamp: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub channel_data: Option<ChannelData>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub entities: Option<Vec<Entity>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reply_to_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, Default)]
+pub struct Recipient {
+    pub id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub role: Option<String>,
+}
+
+/// Activity message
+///
+/// https://learn.microsoft.com/en-us/azure/bot-service/rest-api/bot-framework-rest-connector-api-reference?view=azure-bot-service-4.0#activity-object
+#[derive(Debug, Deserialize, Serialize, Builder, Clone, Default)]
+#[builder(default)]
+#[serde(rename_all = "camelCase")]
+pub struct Activity {
+    // pub r#type: String,
+    pub text: String,
+    pub from: Recipient,
+    pub recipient: Recipient,
+    pub conversation: Conversation,
+    pub service_url: Option<Url>,
+    pub channel_id: Option<String>,
+
+    pub timestamp: Option<String>,
+
+    pub id: Option<String>,
+    pub local_timestamp: Option<String>,
+    pub local_timezone: Option<String>,
+    pub text_format: Option<String>,
+    pub locale: Option<String>,
+    pub attachments: Option<Vec<Attachment>>,
+    pub entities: Option<Vec<Entity>>,
+    pub channel_data: Option<ChannelData>,
+    pub reply_to_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct User {
     pub id: String,
     pub name: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone, Default)]
 pub struct Conversation {
     pub id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Attachment {}
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Entity {
     pub r#type: String,
     pub requires_bot_state: Option<bool>,
@@ -55,10 +129,12 @@ pub struct Entity {
     pub supports_tts: Option<bool>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct ChannelData {
     #[serde(rename = "clientActivityID")]
     pub client_activity_id: String,
+    pub client_timestamp: String,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -66,7 +142,7 @@ pub struct TeamsConfig {
     auth_endpoint: Url,
     bot_endpoint: Url,
     tenant_id: String,
-    scopes: Vec<String>,
+    scope: String,
     id: String,
     secret: String,
     #[serde(with = "humantime_serde")]
@@ -81,7 +157,7 @@ impl Default for TeamsConfig {
             auth_endpoint: Url::parse("https://localhost").unwrap(),
             bot_endpoint: Url::parse("https://localhost").unwrap(),
             tenant_id: Default::default(),
-            scopes: vec![],
+            scope: Default::default(),
             id: Default::default(),
             secret: Default::default(),
             auth_sleep: Duration::from_secs(60),
@@ -98,7 +174,11 @@ pub struct Teams {
 pub async fn maintain_access_token(state: MyState) -> Result<(), MyError> {
     let config = state.config.teams.clone();
 
-    let client = Client::new();
+    // TODO: Setup liveness starting here
+
+    let client = state.client.clone();
+
+    // TODO: Test the timeout
     let issuer_url = IssuerUrl::new(state.config.teams.auth_endpoint.as_str().to_owned())?;
 
     let provider_metadata = CoreProviderMetadata::discover_async(
@@ -121,13 +201,20 @@ pub async fn maintain_access_token(state: MyState) -> Result<(), MyError> {
 
     while !state.ct.is_cancelled() {
         // If we are cancelled, break out of the loop
-        // Try to get the token. If we feil we will sleep for a bit and try again
+        // Try to get the token. If we fail we will sleep for a bit and try again
         // If we get it then we will update the token object in the state AND update the liveness check AND we set the token to None
 
         let token_response = {
             let mut token_query = client_request
                 .exchange_client_credentials()?
-                .add_scopes(config.scopes.iter().map(|s| Scope::new(s.to_owned())));
+                .add_scope(Scope::new(config.scope.clone()))
+                // .add_scope(Scope::new(
+                //     "https://api.botframework.com/.default".to_owned(),
+                // ))
+
+
+                // .add_scopes(config.scopes.iter().map(|s| Scope::new(s.to_owned())))
+                ;
 
             let token_response = token_query.request_async(&client).await.map_err(|error| {
                 info!("Error getting token: {:?}", error);
@@ -144,7 +231,8 @@ pub async fn maintain_access_token(state: MyState) -> Result<(), MyError> {
 
                 *state.teams.access_token.lock().await =
                     Some(token_response.access_token().secret().to_string());
-                // TODO: Add liveness check into this loop
+                // TODO: Add liveness update into this loop
+                info!("Token response: {}", token_response.access_token().secret());
                 let refresh_wait = token_response.expires_in().unwrap() - config.auth_margin;
                 tokio::time::sleep(refresh_wait).await;
             }
@@ -210,45 +298,45 @@ pub async fn test_connection(config: &TeamsConfig) -> Result<(), MyError> {
     let api_url = config.bot_endpoint.join("api/messages").unwrap();
     let access_token = token_response.access_token().secret();
 
-    let response = client
-        .post(api_url)
-        .bearer_auth(access_token)
-        .json(&Activity {
-            r#type: "message".to_string(),
-            id: "1".to_string(),
-            timestamp: "2023-10-01T00:00:00Z".to_string(),
-            local_timestamp: "2023-10-01T00:00:00Z".to_string(),
-            local_timezone: "UTC".to_string(),
-            service_url: config.bot_endpoint.to_string(),
-            channel_id: "msteams".to_string(),
-            from: User {
-                id: "1".to_string(),
-                name: "Bot".to_string(),
-            },
-            conversation: Conversation {
-                id: "1".to_string(),
-            },
-            recipient: User {
-                id: "2".to_string(),
-                name: "User".to_string(),
-            },
-            text_format: "plain".to_string(),
-            locale: "en-US".to_string(),
-            text: "Hello, world!".to_string(),
-            attachments: vec![],
-            entities: None,
-            channel_data: ChannelData {
-                client_activity_id: "1".to_string(),
-            },
-        })
-        .send()
-        .await?;
-    info!("API response: {:?}", response.status());
-    if response.status().is_success() {
-        info!("API call succeeded");
-    } else {
-        info!("API call failed: {:?}", response.text().await?);
-    }
+    // let response = client
+    //     .post(api_url)
+    //     .bearer_auth(access_token)
+    //     .json(&Activity {
+    //         // r#type: "message".to_string(),
+    //         id: "1".to_string(),
+    //         timestamp: "2023-10-01T00:00:00Z".to_string(),
+    //         local_timestamp: "2023-10-01T00:00:00Z".to_string(),
+    //         local_timezone: "UTC".to_string(),
+    //         service_url: config.bot_endpoint.to_string(),
+    //         channel_id: "msteams".to_string(),
+    //         from: User {
+    //             id: "1".to_string(),
+    //             name: "Bot".to_string(),
+    //         },
+    //         conversation: Conversation {
+    //             id: "1".to_string(),
+    //         },
+    //         recipient: User {
+    //             id: "2".to_string(),
+    //             name: "User".to_string(),
+    //         },
+    //         text_format: "plain".to_string(),
+    //         locale: "en-US".to_string(),
+    //         text: "Hello, world!".to_string(),
+    //         attachments: vec![],
+    //         entities: None,
+    //         channel_data: ChannelData {
+    //             client_activity_id: "1".to_string(),
+    //         },
+    //     })
+    //     .send()
+    //     .await?;
+    // info!("API response: {:?}", response.status());
+    // if response.status().is_success() {
+    //     info!("API call succeeded");
+    // } else {
+    //     info!("API call failed: {:?}", response.text().await?);
+    // }
 
     //    let auth_url = provider_metadata.clone().token_endpoint().unwrap();
 

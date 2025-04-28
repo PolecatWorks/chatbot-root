@@ -7,6 +7,7 @@
 use std::{
     ffi::c_void,
     sync::{Arc, Mutex},
+    time::Duration,
 };
 
 use botapi::{maintain_access_token, Teams};
@@ -47,6 +48,7 @@ pub struct MyState {
     config: MyConfig,
     db_state: PersistenceState,
     ct: CancellationToken,
+    client: Client,
     pub count_good: Arc<Mutex<usize>>,
     pub count_fail: Arc<Mutex<usize>>,
     registry: Registry,
@@ -58,6 +60,8 @@ impl MyState {
     pub async fn new(config: &MyConfig, ct: CancellationToken) -> Result<MyState, MyError> {
         let db_state = PersistenceState::new(&config.persistence).await?;
 
+        let client = Client::builder().timeout(Duration::from_secs(5)).build()?;
+
         let registry = Registry::new();
 
         let hello_counter = IntGauge::new("my_counter", "A counter for my application")?;
@@ -68,6 +72,7 @@ impl MyState {
             config: config.clone(),
             db_state,
             ct,
+            client,
             count_good: Arc::new(Mutex::new(0)),
             count_fail: Arc::new(Mutex::new(0)),
             registry,
