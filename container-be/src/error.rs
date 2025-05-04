@@ -50,16 +50,20 @@ pub enum MyError {
     ParseError(#[from] url::ParseError),
     #[error("Tokio Join error `{0}`")]
     JoinError(#[from] tokio::task::JoinError),
-    #[error("openidconnect::ConfigurationError error `{0}`")]
-    ConfigurationError(#[from] openidconnect::ConfigurationError),
+    #[error("ConfigurationError `{0}`")]
+    ConfigurationError(String),
     #[error("DiscoveryError `{0}`")]
-    DiscoveryError(
-        #[from] openidconnect::DiscoveryError<openidconnect::HttpClientError<reqwest::Error>>,
-    ),
+    DiscoveryError(String),
     #[error("ReqwestError `{0}`")]
     ReqwestError(#[from] reqwest::Error),
     #[error("RequestToken error `{0}`")]
     RequestTokenError(String),
     #[error("BuilderError `{0}`")]
     BuilderError(String),
+    #[error("DecoderError `{0}`")]
+    DecoderError(#[from] base64::DecodeError),
+    #[error("UtfError `{0}`")]
+    UtfError(#[from] std::string::FromUtf8Error),
+    #[error("ParseIntError `{0}`")]
+    ParseIntError(#[from] std::num::ParseIntError),
 }

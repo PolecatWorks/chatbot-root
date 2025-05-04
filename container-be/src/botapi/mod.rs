@@ -2,12 +2,9 @@ pub mod handlers;
 
 use std::{sync::Arc, time::Duration};
 
+use base64::{prelude::BASE64_STANDARD, Engine};
 use derive_builder::Builder;
-use log::info;
-use openidconnect::{
-    core::{CoreClient, CoreProviderMetadata},
-    ClientId, ClientSecret, IssuerUrl, OAuth2TokenResponse, Scope,
-};
+use log::{debug, error, info, warn};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
@@ -138,15 +135,29 @@ pub struct ChannelData {
 }
 
 #[derive(Deserialize, Debug, Clone)]
+pub struct WebChatConfig {
+    pub secret: String, // Secret for WebChat integration
+    pub token_url: Url, // URL to fetch WebChat token
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct DirectLineConfig {
+    pub secret: String, // Secret for DirectLine integration
+    pub token_url: Url, // URL to fetch DirectLine token
+}
+
+#[derive(Deserialize, Debug, Clone)]
 pub struct TeamsConfig {
-    auth_endpoint: Url,
-    bot_endpoint: Url,
-    tenant_id: String,
-    scope: String,
-    id: String,
-    secret: String,
+    pub auth_endpoint: Url,
+    pub bot_endpoint: Url,
+    pub tenant_id: String,
+    pub scope: String,
+    pub id: String,
+    pub secret: String,
+    pub webchat: WebChatConfig,       // WebChat configuration
+    pub directline: DirectLineConfig, // DirectLine configuration
     #[serde(with = "humantime_serde")]
-    pub auth_sleep: Duration,
+    pub auth_fail_sleep: Duration,
     #[serde(with = "humantime_serde")]
     pub auth_margin: Duration,
 }
@@ -160,7 +171,15 @@ impl Default for TeamsConfig {
             scope: Default::default(),
             id: Default::default(),
             secret: Default::default(),
-            auth_sleep: Duration::from_secs(60),
+            webchat: WebChatConfig {
+                secret: Default::default(),
+                token_url: Url::parse("https://localhost").unwrap(),
+            },
+            directline: DirectLineConfig {
+                secret: Default::default(),
+                token_url: Url::parse("https://localhost").unwrap(),
+            },
+            auth_fail_sleep: Duration::from_secs(60),
             auth_margin: Duration::from_secs(60),
         }
     }
@@ -169,84 +188,285 @@ impl Default for TeamsConfig {
 #[derive(Default, Debug, Clone)]
 pub struct Teams {
     pub access_token: Arc<Mutex<Option<String>>>,
+    pub webchat_access_token: Arc<Mutex<Option<String>>>,
+    pub directline_access_token: Arc<Mutex<Option<String>>>,
+}
+pub async fn maintain_access_token(state: MyState) -> Result<(), MyError> {
+    // maintain_app_token(state.clone()).await
+
+    tokio::select! {
+        _ = state.ct.cancelled() => {
+            info!("Cancelled maintain_access_token");
+        }
+        _ = maintain_app_token(state.clone()) => {
+            info!("Cancelled maintain_app_token");
+        }
+        _ = maintain_direcline_token(&state, &state.config.teams, &state.client) => {
+            info!("Cancelled maintain_direcline_token");
+        }
+        _ = maintain_webchat_token(&state, &state.config.teams, &state.client) => {
+            info!("Cancelled maintain_webchat_token");
+        }
+    }
+
+    state.ct.cancel();
+    Ok(())
 }
 
-pub async fn maintain_access_token(state: MyState) -> Result<(), MyError> {
+pub async fn maintain_app_token(state: MyState) -> Result<(), MyError> {
     let config = state.config.teams.clone();
 
     // TODO: Setup liveness starting here
 
     let client = state.client.clone();
 
-    // TODO: Test the timeout
-    let issuer_url = IssuerUrl::new(state.config.teams.auth_endpoint.as_str().to_owned())?;
+    // Fetch and parse the well-known endpoints to get issuer and token endpoint
+    let well_known_url = config
+        .auth_endpoint
+        .join(".well-known/openid-configuration")?;
+    debug!("Fetching well-known endpoints from: {}", well_known_url);
+    let well_known_response = client.get(well_known_url).send().await?;
 
-    let provider_metadata = CoreProviderMetadata::discover_async(
-        issuer_url, // The base URL of the provider
-        &client,    // The HTTP client function
-                    // If using openidconnect v2.x: reqwest::async_http_client
-    )
-    .await?;
+    debug!("Well-known response: {:?}", well_known_response);
+    if !well_known_response.status().is_success() {
+        error!(
+            "Failed to fetch well-known endpoints: {}",
+            well_known_response.status()
+        );
+        return Err(MyError::RequestTokenError(format!(
+            "Failed to fetch well-known endpoints: {}",
+            well_known_response.status()
+        )));
+    }
 
-    info!("Issuer: {}", provider_metadata.clone().issuer().as_str());
+    let well_known_data: serde_json::Value = well_known_response.json().await?;
+    let issuer = well_known_data["issuer"].as_str().ok_or_else(|| {
+        MyError::RequestTokenError("Missing issuer in well-known endpoints".to_string())
+    })?;
+    let token_endpoint = well_known_data["token_endpoint"].as_str().ok_or_else(|| {
+        MyError::RequestTokenError("Missing token endpoint in well-known endpoints".to_string())
+    })?;
 
-    let client_id = ClientId::new(config.id.clone());
-    let client_secret = ClientSecret::new(config.secret.clone());
-
-    let client_request = CoreClient::from_provider_metadata(
-        provider_metadata.clone(), // Metadata fetched earlier
-        client_id,
-        Some(client_secret), // Needed later for code exchange
-    );
+    info!("Discovered issuer: {}", issuer);
+    info!("Discovered token endpoint: {}", token_endpoint);
 
     while !state.ct.is_cancelled() {
         // If we are cancelled, break out of the loop
         // Try to get the token. If we fail we will sleep for a bit and try again
         // If we get it then we will update the token object in the state AND update the liveness check AND we set the token to None
 
-        let token_response = {
-            let mut token_query = client_request
-                .exchange_client_credentials()?
-                .add_scope(Scope::new(config.scope.clone()))
-                // .add_scope(Scope::new(
-                //     "https://api.botframework.com/.default".to_owned(),
-                // ))
+        // Replace the exchange_client_credentials logic with reqwest
+        let token_response = client
+            .post(token_endpoint)
+            .form(&[
+                ("client_id", config.id.clone()),
+                ("client_secret", config.secret.clone()),
+                ("grant_type", "client_credentials".to_string()),
+                ("scope", config.scope.clone()),
+            ])
+            .send()
+            .await;
 
-
-                // .add_scopes(config.scopes.iter().map(|s| Scope::new(s.to_owned())))
-                ;
-
-            let token_response = token_query.request_async(&client).await.map_err(|error| {
-                info!("Error getting token: {:?}", error);
-                MyError::RequestTokenError(error.to_string())
-            })?;
-
-            Ok::<_, MyError>(token_response)
-            // Ok(token_response)
-        };
+        println!("Token response: {:?}", token_response);
 
         match token_response {
-            Ok(token_response) => {
-                info!("Token expires in: {:?}", token_response.expires_in());
+            Ok(response) if response.status().is_success() => {
+                let token: serde_json::Value = response.json().await?;
+                let access_token = token["access_token"]
+                    .as_str()
+                    .map(str::to_string)
+                    .ok_or_else(|| {
+                        MyError::RequestTokenError("Missing token in app token".to_string())
+                    })?;
 
-                *state.teams.access_token.lock().await =
-                    Some(token_response.access_token().secret().to_string());
-                // TODO: Add liveness update into this loop
-                info!("Token response: {}", token_response.access_token().secret());
-                let refresh_wait = token_response.expires_in().unwrap() - config.auth_margin;
+                *state.teams.access_token.lock().await = Some(access_token);
+                info!("Access token updated successfully");
+
+                let expires_in = token["expires_in"]
+                    .as_str()
+                    .map(str::parse::<u64>)
+                    .ok_or_else(|| {
+                        MyError::RequestTokenError("Missing expires in app token".to_string())
+                    })??;
+                let refresh_wait = Duration::from_secs(expires_in) - config.auth_margin;
+
+                info!("Access token expires in: {} seconds", expires_in);
+
                 tokio::time::sleep(refresh_wait).await;
             }
+            Ok(response) => {
+                info!("Failed to fetch token: {}", response.status());
+                tokio::time::sleep(config.auth_fail_sleep).await;
+            }
             Err(error) => {
-                info!(
-                    "Error getting token,{} trying again in {:?}",
-                    error, config.auth_sleep
-                );
-                tokio::time::sleep(config.auth_sleep).await;
+                info!("Error fetching token: {}", error);
+                tokio::time::sleep(config.auth_fail_sleep).await;
             }
         }
+
+        // update_webchat_token(&state, &config, &client).await;
+        // update_direcline_token(&state, &config, &client).await;
+        tokio::time::sleep(config.auth_fail_sleep).await;
     }
 
     Ok(())
+}
+
+async fn maintain_direcline_token(state: &MyState, config: &TeamsConfig, client: &Client) {
+    while !state.ct.is_cancelled() {
+        // If we are cancelled, break out of the loop
+        // Try to get the token. If we fail we will sleep for a bit and try again
+        // If we get it then we will update the token object in the state AND update the liveness check AND we set the token to None
+
+        match update_direcline_token(state, config, client).await {
+            Ok(duration) => {
+                let sleep_duration = duration - config.auth_margin;
+                info!(
+                    "DirectLine token expires in: {} seconds",
+                    duration.as_secs()
+                );
+                tokio::time::sleep(sleep_duration).await;
+            }
+            Err(error) => {
+                info!("Error fetching DirectLine token: {}", error);
+                tokio::time::sleep(config.auth_fail_sleep).await;
+            }
+        }
+    }
+}
+
+async fn maintain_webchat_token(state: &MyState, config: &TeamsConfig, client: &Client) {
+    while !state.ct.is_cancelled() {
+        // If we are cancelled, break out of the loop
+        // Try to get the token. If we fail we will sleep for a bit and try again
+        // If we get it then we will update the token object in the state AND update the liveness check AND we set the token to None
+
+        match update_webchat_token(state, config, client).await {
+            Ok(duration) => {
+                let sleep_duration = duration - config.auth_margin;
+                info!("WebChat token expires in: {} seconds", duration.as_secs());
+                tokio::time::sleep(sleep_duration).await;
+            }
+            Err(error) => {
+                info!("Error fetching WebChat token: {}", error);
+                tokio::time::sleep(config.auth_fail_sleep).await;
+            }
+        }
+    }
+}
+
+fn jwt_expire_time(token: &str) -> Result<Duration, MyError> {
+    // Decode the JWT token to get the expiration time
+    println!("Decoding JWT token: {}", token);
+    let parts: Vec<&str> = token.split('.').collect();
+    if parts.len() != 3 {
+        return Err(MyError::Message("JWT does not have 3 parts"));
+    }
+
+    println!("Decoding parts: {:?}", parts[1]);
+    let payload = BASE64_STANDARD.decode(parts[1])?;
+
+    let payload_str = String::from_utf8(payload)?;
+    let payload_json: serde_json::Value = serde_json::from_str(&payload_str)?;
+
+    let exp = payload_json["exp"]
+        .as_u64()
+        .ok_or(MyError::Message("Missing exp field in JWT payload"))?;
+    let now = chrono::Utc::now().timestamp() as u64;
+
+    Ok(Duration::from_secs(exp - now))
+}
+
+async fn update_direcline_token(
+    state: &MyState,
+    config: &TeamsConfig,
+    client: &Client,
+) -> Result<Duration, MyError> {
+    // Maintain DirectLine token
+
+    let directline_token_response = client
+        .post(config.directline.token_url.clone())
+        .header(
+            "Authorization",
+            format!("Bearer {}", config.directline.secret),
+        )
+        .send()
+        .await?;
+
+    match directline_token_response {
+        response if response.status().is_success() => {
+            let token: serde_json::Value = response.json().await?;
+            let directline_token =
+                token["token"].as_str().map(str::to_string).ok_or_else(|| {
+                    MyError::RequestTokenError("Missing token in directline".to_string())
+                })?;
+
+            *state.teams.directline_access_token.lock().await = Some(directline_token.clone());
+            info!("DirectLine token updated successfully");
+
+            // jwt_expire_time(&directline_token)
+            Ok(Duration::from_secs(3000))
+        }
+        response => {
+            error!(
+                "Failed to fetch DirectLine token: {:?} and {}",
+                response, config.directline.token_url
+            );
+            Err(MyError::RequestTokenError(format!(
+                "Failed to fetch DirectLine token: {:?} and {}",
+                response, config.directline.token_url
+            )))
+        }
+    }
+}
+
+async fn update_webchat_token(
+    state: &MyState,
+    config: &TeamsConfig,
+    client: &Client,
+) -> Result<Duration, MyError> {
+    let webchat_token_response = client
+        .get(config.webchat.token_url.clone())
+        .header(
+            "Authorization",
+            format!("BotConnector {}", config.webchat.secret),
+        )
+        .send()
+        .await;
+
+    // println!("WebChat token response: {:?}", webchat_token_response);
+
+    match webchat_token_response {
+        Ok(response) if response.status().is_success() => {
+            let token: serde_json::Value = response.json().await?;
+            let webchat_token = token.as_str().map(str::to_string).ok_or_else(|| {
+                MyError::RequestTokenError("Missing token in webchat".to_string())
+            })?;
+
+            *state.teams.webchat_access_token.lock().await = Some(webchat_token);
+            info!("WebChat token updated successfully");
+
+            let refresh_wait = Duration::from_secs(3000);
+            Ok(refresh_wait)
+        }
+        Ok(response) => {
+            error!(
+                "Failed to fetch WebChat token: {:?} from {}",
+                response, config.webchat.token_url
+            );
+            Err(MyError::RequestTokenError(format!(
+                "Failed to fetch WebChat token: {:?} from {}",
+                response, config.webchat.token_url
+            )))
+        }
+        Err(error) => {
+            error!("Error fetching WebChat token: {}", error);
+            Err(MyError::RequestTokenError(format!(
+                "Error fetching WebChat token: {}",
+                error
+            )))
+        }
+    }
 }
 
 pub async fn test_connection(config: &TeamsConfig) -> Result<(), MyError> {
@@ -255,108 +475,61 @@ pub async fn test_connection(config: &TeamsConfig) -> Result<(), MyError> {
     info!("Connection info is: {:?}", config);
 
     let client = Client::new();
-    let issuer_url = IssuerUrl::new(config.auth_endpoint.as_str().to_owned())?;
-    println!("Parsed Issuer URL: {}", issuer_url.as_str());
-    // The crate automatically appends "/.well-known/openid-configuration"
-    // or "/.well-known/oauth-authorization-server" when fetching.
 
-    // 2. Discover the provider metadata asynchronously
-    //    This function sends an HTTP GET request to the .well-known endpoint.
-    //    It requires an async HTTP client function. We use the one provided
-    //    by the `reqwest-client` feature.
-    let provider_metadata = CoreProviderMetadata::discover_async(
-        issuer_url, // The base URL of the provider
-        &client,    // The HTTP client function
-                    // If using openidconnect v2.x: reqwest::async_http_client
-    )
-    .await?;
-
-    info!("Issuer: {:?}", provider_metadata.clone().issuer());
-
-    let client_id = ClientId::new(config.id.clone());
-    let client_secret = ClientSecret::new(config.secret.clone());
-
-    let client_request = CoreClient::from_provider_metadata(
-        provider_metadata.clone(), // Metadata fetched earlier
-        client_id,
-        Some(client_secret), // Needed later for code exchange
-    );
-
-    let token_response = client_request
-        .exchange_client_credentials()
-        .unwrap()
-        .add_scope(Scope::new(
-            "api://87de8678-74cc-4a80-8987-ce00baf25087/.default".to_owned(),
-        ))
-        .request_async(&client)
-        .await
-        .unwrap();
-    info!("Token response: {:?}", token_response);
-    info!("Access token: {:?}", token_response.access_token().secret());
-
-    // Create a new request to call to the API endpoint with the access token
-    let api_url = config.bot_endpoint.join("api/messages").unwrap();
-    let access_token = token_response.access_token().secret();
-
-    // let response = client
-    //     .post(api_url)
-    //     .bearer_auth(access_token)
-    //     .json(&Activity {
-    //         // r#type: "message".to_string(),
-    //         id: "1".to_string(),
-    //         timestamp: "2023-10-01T00:00:00Z".to_string(),
-    //         local_timestamp: "2023-10-01T00:00:00Z".to_string(),
-    //         local_timezone: "UTC".to_string(),
-    //         service_url: config.bot_endpoint.to_string(),
-    //         channel_id: "msteams".to_string(),
-    //         from: User {
-    //             id: "1".to_string(),
-    //             name: "Bot".to_string(),
-    //         },
-    //         conversation: Conversation {
-    //             id: "1".to_string(),
-    //         },
-    //         recipient: User {
-    //             id: "2".to_string(),
-    //             name: "User".to_string(),
-    //         },
-    //         text_format: "plain".to_string(),
-    //         locale: "en-US".to_string(),
-    //         text: "Hello, world!".to_string(),
-    //         attachments: vec![],
-    //         entities: None,
-    //         channel_data: ChannelData {
-    //             client_activity_id: "1".to_string(),
-    //         },
-    //     })
+    let well_known_url = config
+        .auth_endpoint
+        .join(".well-known/openid-configuration")?;
+    info!("Fetching well-known endpoints from: {}", well_known_url);
+    // let well_known_response = client
+    //     .get(well_known_url)
+    //     // .build()?
     //     .send()
     //     .await?;
-    // info!("API response: {:?}", response.status());
-    // if response.status().is_success() {
-    //     info!("API call succeeded");
-    // } else {
-    //     info!("API call failed: {:?}", response.text().await?);
-    // }
+    let well_known_response = reqwest::get(well_known_url).await?;
+    info!("Well-known response: {:?}", well_known_response);
 
-    //    let auth_url = provider_metadata.clone().token_endpoint().unwrap();
+    // let issuer_url = IssuerUrl::new(config.auth_endpoint.as_str().to_owned())?;
+    // println!("Parsed Issuer URL: {}", issuer_url.as_str());
+    // // The crate automatically appends "/.well-known/openid-configuration"
+    // // or "/.well-known/oauth-authorization-server" when fetching.
 
-    //     let tenant_id = "1fd80b61-a805-4a57-879b-45ddb39a660d";
+    // // 2. Discover the provider metadata asynchronously
+    // //    This function sends an HTTP GET request to the .well-known endpoint.
+    // //    It requires an async HTTP client function. We use the one provided
+    // //    by the `reqwest-client` feature.
+    // let provider_metadata = CoreProviderMetadata::discover_async(
+    //     issuer_url, // The base URL of the provider
+    //     &client,    // The HTTP client function
+    //                 // If using openidconnect v2.x: reqwest::async_http_client
+    // )
+    // .await;
 
-    //     let url = format!(
-    //         "https://login.microsoftonline.com/{}/oauth2/v2.0/token",
-    //         tenant_id
-    //     );
-    //     // let url = "https://informally-large-terrier.ngrok-free.app/api/messages".to_owned();
-    //     let params = [
-    //         ("client_id", config.id.clone()),
-    //         ("client_secret", config.secret.clone()),
-    //         ("grant_type", "client_credentials".to_owned()),
-    //         ("scope", "api://87de8678-74cc-4a80-8987-ce00baf25087/.default".to_owned()),
-    //     ];
+    // info!("Issuer: {:?}", provider_metadata.clone().issuer());
 
-    //     let resp = client.post(&url).form(&params).send().await.unwrap();
+    // let client_id = ClientId::new(config.id.clone());
+    // let client_secret = ClientSecret::new(config.secret.clone());
 
-    //     println!("Got results : {:?}", resp.text().await);
+    // let client_request = CoreClient::from_provider_metadata(
+    //     provider_metadata.clone(), // Metadata fetched earlier
+    //     client_id,
+    //     Some(client_secret), // Needed later for code exchange
+    // );
+
+    // let token_response = client_request
+    //     .exchange_client_credentials()
+    //     .unwrap()
+    //     .add_scope(Scope::new(
+    //         "api://87de8678-74cc-4a80-8987-ce00baf25087/.default".to_owned(),
+    //     ))
+    //     .request_async(&client)
+    //     .await
+    //     .unwrap();
+    // info!("Token response: {:?}", token_response);
+    // info!("Access token: {:?}", token_response.access_token().secret());
+
+    // // Create a new request to call to the API endpoint with the access token
+    // let api_url = config.bot_endpoint.join("api/messages").unwrap();
+    // let access_token = token_response.access_token().secret();
 
     Ok(())
 }

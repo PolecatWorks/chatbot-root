@@ -14,7 +14,6 @@ use botapi::{maintain_access_token, Teams};
 use config::MyConfig;
 use error::MyError;
 use hamsrs::Hams;
-use openidconnect::IssuerUrl;
 use reqwest::Client;
 
 use log::info;

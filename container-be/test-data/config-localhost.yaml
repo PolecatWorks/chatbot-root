@@ -42,5 +42,11 @@ teams:
   #   - https://api.botframework.com/.default
   auth_endpoint: https://login.microsoftonline.com/1fd80b61-a805-4a57-879b-45ddb39a660d/v2.0
   # /.well-known/openid-configuration
-  auth_sleep: 30s
+  auth_fail_sleep: 30s
   auth_margin: 30s
+  webchat:
+    secret_file: bot/webchat/secret
+    token_url: https://europe.webchat.botframework.com/api/tokens
+  directline:
+    secret_file: bot/directline/secret
+    token_url: https://europe.directline.botframework.com/v3/directline/tokens/generate

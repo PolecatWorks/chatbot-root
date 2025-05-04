@@ -153,6 +153,9 @@ async fn handle_rejection(err: Rejection) -> std::result::Result<impl Reply, Inf
             MyError::ConfigurationError(error) => todo!("Configuration error: {}", error),
             MyError::RequestTokenError(error) => todo!("RequestToken error: {}", error),
             MyError::BuilderError(error) => todo!("Builder error: {}", error),
+            MyError::DecoderError(error) => todo!("Decoder error: {}", error),
+            MyError::UtfError(error) => todo!("UTF error: {}", error),
+            MyError::ParseIntError(error) => todo!("ParseInt error: {}", error),
         }
     } else {
         eprintln!("unhandled error: {:?}", err);
