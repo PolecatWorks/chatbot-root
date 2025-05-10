@@ -69,7 +69,7 @@ use serde::Deserialize;
 use url::Url;
 
 use crate::{
-    botapi::TeamsConfig, persistence::PersistenceConfig, tokio_tools::ThreadRuntime,
+    botapi::config::BotApiConfig, persistence::PersistenceConfig, tokio_tools::ThreadRuntime,
     webserver::WebServiceConfig,
 };
 
@@ -101,7 +101,7 @@ pub struct MyConfig {
     pub runtime: ThreadRuntime,
     pub webservice: WebServiceConfig,
     pub persistence: PersistenceConfig,
-    pub teams: TeamsConfig,
+    pub teams: BotApiConfig,
 }
 
 impl MyConfig {

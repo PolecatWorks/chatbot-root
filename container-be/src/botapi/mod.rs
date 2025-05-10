@@ -1,341 +1,248 @@
+pub mod config;
+pub mod directline;
 pub mod handlers;
 
-use std::{sync::Arc, time::Duration};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use base64::{prelude::BASE64_STANDARD, Engine};
-use derive_builder::Builder;
-use log::{debug, error, info, warn};
+use config::BotApiConfig;
+use directline::{BotActivity, ConversationToken};
+use log::{error, info};
 use reqwest::Client;
-use serde::{Deserialize, Serialize};
-use tokio::sync::Mutex;
-use url::Url;
+use tokio::sync::{Mutex, RwLock};
 
 use crate::{error::MyError, MyState};
 
-#[derive(Debug, Deserialize, Serialize)]
-#[serde(tag = "type")]
-pub enum BotResponses {
-    // #[serde(alias = "message")]
-    // // #[serde(rename="invoke")]
-    // Activity(Activity),
-    #[serde(alias = "conversationUpdate")]
-    ConversationUpdate(ConversationUpdate),
-    #[serde(rename = "message")]
-    Message(Message),
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ConversationUpdate {
-    pub id: String,
-    pub timestamp: String,
-    pub service_url: Option<Url>,
-    pub channel_id: String,
-    pub from: Recipient,
-    pub conversation: Conversation,
-    pub recipient: Recipient,
-    pub members_added: Vec<Recipient>,
-}
-
-#[derive(Debug, Deserialize, Serialize, Builder, Default)]
-#[serde(rename_all = "camelCase")]
-#[builder(default)]
-pub struct Message {
-    pub service_url: Option<Url>,
-    pub channel_id: String,
-    pub from: Recipient,
-    pub conversation: Conversation,
-    pub recipient: Recipient,
-    pub locale: String,
-    pub text: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub text_format: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub input_hint: Option<String>,
-    pub id: String,
-    pub local_timestamp: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub local_timezone: Option<String>,
-    pub timestamp: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub channel_data: Option<ChannelData>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub entities: Option<Vec<Entity>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub reply_to_id: Option<String>,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone, Default)]
-pub struct Recipient {
-    pub id: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub role: Option<String>,
-}
-
-/// Activity message
-///
-/// https://learn.microsoft.com/en-us/azure/bot-service/rest-api/bot-framework-rest-connector-api-reference?view=azure-bot-service-4.0#activity-object
-#[derive(Debug, Deserialize, Serialize, Builder, Clone, Default)]
-#[builder(default)]
-#[serde(rename_all = "camelCase")]
-pub struct Activity {
-    // pub r#type: String,
-    pub text: String,
-    pub from: Recipient,
-    pub recipient: Recipient,
-    pub conversation: Conversation,
-    pub service_url: Option<Url>,
-    pub channel_id: Option<String>,
-
-    pub timestamp: Option<String>,
-
-    pub id: Option<String>,
-    pub local_timestamp: Option<String>,
-    pub local_timezone: Option<String>,
-    pub text_format: Option<String>,
-    pub locale: Option<String>,
-    pub attachments: Option<Vec<Attachment>>,
-    pub entities: Option<Vec<Entity>>,
-    pub channel_data: Option<ChannelData>,
-    pub reply_to_id: Option<String>,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct User {
-    pub id: String,
-    pub name: String,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone, Default)]
-pub struct Conversation {
-    pub id: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct Attachment {}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct Entity {
-    pub r#type: String,
-    pub requires_bot_state: Option<bool>,
-    pub supports_listening: Option<bool>,
-    pub supports_tts: Option<bool>,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct ChannelData {
-    #[serde(rename = "clientActivityID")]
-    pub client_activity_id: String,
-    pub client_timestamp: String,
-}
-
-#[derive(Deserialize, Debug, Clone)]
-pub struct WebChatConfig {
-    pub secret: String, // Secret for WebChat integration
-    pub token_url: Url, // URL to fetch WebChat token
-}
-
-#[derive(Deserialize, Debug, Clone)]
-pub struct DirectLineConfig {
-    pub secret: String, // Secret for DirectLine integration
-    pub token_url: Url, // URL to fetch DirectLine token
-}
-
-#[derive(Deserialize, Debug, Clone)]
-pub struct TeamsConfig {
-    pub auth_endpoint: Url,
-    pub bot_endpoint: Url,
-    pub tenant_id: String,
-    pub scope: String,
-    pub id: String,
-    pub secret: String,
-    pub webchat: WebChatConfig,       // WebChat configuration
-    pub directline: DirectLineConfig, // DirectLine configuration
-    #[serde(with = "humantime_serde")]
-    pub auth_fail_sleep: Duration,
-    #[serde(with = "humantime_serde")]
-    pub auth_margin: Duration,
-}
-
-impl Default for TeamsConfig {
-    fn default() -> Self {
-        Self {
-            auth_endpoint: Url::parse("https://localhost").unwrap(),
-            bot_endpoint: Url::parse("https://localhost").unwrap(),
-            tenant_id: Default::default(),
-            scope: Default::default(),
-            id: Default::default(),
-            secret: Default::default(),
-            webchat: WebChatConfig {
-                secret: Default::default(),
-                token_url: Url::parse("https://localhost").unwrap(),
-            },
-            directline: DirectLineConfig {
-                secret: Default::default(),
-                token_url: Url::parse("https://localhost").unwrap(),
-            },
-            auth_fail_sleep: Duration::from_secs(60),
-            auth_margin: Duration::from_secs(60),
-        }
-    }
-}
-
+/// Client to interact with the DirectLine API
+/// This client is used to create and manage conversations with the DirectLine API.
+/// It uses the reqwest library to make HTTP requests and the serde library to serialize and deserialize JSON data.
 #[derive(Default, Debug, Clone)]
-pub struct Teams {
+pub struct BotApi {
+    pub config: BotApiConfig,
+    client: Client,
     pub access_token: Arc<Mutex<Option<String>>>,
     pub webchat_access_token: Arc<Mutex<Option<String>>>,
     pub directline_access_token: Arc<Mutex<Option<String>>>,
+    conversations: Arc<RwLock<HashMap<String, ConversationToken>>>,
 }
-pub async fn maintain_access_token(state: MyState) -> Result<(), MyError> {
-    // maintain_app_token(state.clone()).await
 
-    tokio::select! {
-        _ = state.ct.cancelled() => {
-            info!("Cancelled maintain_access_token");
-        }
-        _ = maintain_app_token(state.clone()) => {
-            info!("Cancelled maintain_app_token");
-        }
-        _ = maintain_direcline_token(&state, &state.config.teams, &state.client) => {
-            info!("Cancelled maintain_direcline_token");
-        }
-        _ = maintain_webchat_token(&state, &state.config.teams, &state.client) => {
-            info!("Cancelled maintain_webchat_token");
+impl BotApi {
+    pub fn new(config: BotApiConfig, client: Client) -> Self {
+        Self {
+            config,
+            client,
+            access_token: Arc::new(Mutex::new(None)),
+            webchat_access_token: Arc::new(Mutex::new(None)),
+            directline_access_token: Arc::new(Mutex::new(None)),
+            conversations: Arc::new(RwLock::new(HashMap::new())),
         }
     }
 
-    state.ct.cancel();
-    Ok(())
-}
+    /// Create a new conversation
+    ///
+    /// This function will create a new conversation and return the conversation ID.
+    ///
+    ///    curl -X POST "https://europe.directline.botframework.com/v3/directline/conversations" \
+    ///     -H "Authorization: Bearer $TOKEN"
+    ///
+    async fn create_conversation(&self) -> Result<ConversationToken, MyError> {
+        let conv_url = self
+            .config
+            .directline
+            .base_url
+            .join("v3/directline/conversations")?;
 
-pub async fn maintain_app_token(state: MyState) -> Result<(), MyError> {
-    let config = state.config.teams.clone();
-
-    // TODO: Setup liveness starting here
-
-    let client = state.client.clone();
-
-    // Fetch and parse the well-known endpoints to get issuer and token endpoint
-    let well_known_url = config
-        .auth_endpoint
-        .join(".well-known/openid-configuration")?;
-    debug!("Fetching well-known endpoints from: {}", well_known_url);
-    let well_known_response = client.get(well_known_url).send().await?;
-
-    debug!("Well-known response: {:?}", well_known_response);
-    if !well_known_response.status().is_success() {
-        error!(
-            "Failed to fetch well-known endpoints: {}",
-            well_known_response.status()
-        );
-        return Err(MyError::RequestTokenError(format!(
-            "Failed to fetch well-known endpoints: {}",
-            well_known_response.status()
-        )));
-    }
-
-    let well_known_data: serde_json::Value = well_known_response.json().await?;
-    let issuer = well_known_data["issuer"].as_str().ok_or_else(|| {
-        MyError::RequestTokenError("Missing issuer in well-known endpoints".to_string())
-    })?;
-    let token_endpoint = well_known_data["token_endpoint"].as_str().ok_or_else(|| {
-        MyError::RequestTokenError("Missing token endpoint in well-known endpoints".to_string())
-    })?;
-
-    info!("Discovered issuer: {}", issuer);
-    info!("Discovered token endpoint: {}", token_endpoint);
-
-    while !state.ct.is_cancelled() {
-        // If we are cancelled, break out of the loop
-        // Try to get the token. If we fail we will sleep for a bit and try again
-        // If we get it then we will update the token object in the state AND update the liveness check AND we set the token to None
-
-        // Replace the exchange_client_credentials logic with reqwest
-        let token_response = client
-            .post(token_endpoint)
-            .form(&[
-                ("client_id", config.id.clone()),
-                ("client_secret", config.secret.clone()),
-                ("grant_type", "client_credentials".to_string()),
-                ("scope", config.scope.clone()),
-            ])
+        let conv_response = self
+            .client
+            .post(conv_url)
+            .bearer_auth(&self.config.directline.secret)
             .send()
-            .await;
+            .await?
+            .error_for_status()?;
 
-        println!("Token response: {:?}", token_response);
+        let conv = conv_response.json::<ConversationToken>().await?;
 
-        match token_response {
-            Ok(response) if response.status().is_success() => {
-                let token: serde_json::Value = response.json().await?;
-                let access_token = token["access_token"]
-                    .as_str()
-                    .map(str::to_string)
-                    .ok_or_else(|| {
-                        MyError::RequestTokenError("Missing token in app token".to_string())
-                    })?;
+        self.conversations
+            .write()
+            .await
+            .insert(conv.conversation_id.clone(), conv.clone());
 
-                *state.teams.access_token.lock().await = Some(access_token);
-                info!("Access token updated successfully");
-
-                let expires_in = token["expires_in"]
-                    .as_str()
-                    .map(str::parse::<u64>)
-                    .ok_or_else(|| {
-                        MyError::RequestTokenError("Missing expires in app token".to_string())
-                    })??;
-                let refresh_wait = Duration::from_secs(expires_in) - config.auth_margin;
-
-                info!("Access token expires in: {} seconds", expires_in);
-
-                tokio::time::sleep(refresh_wait).await;
-            }
-            Ok(response) => {
-                info!("Failed to fetch token: {}", response.status());
-                tokio::time::sleep(config.auth_fail_sleep).await;
-            }
-            Err(error) => {
-                info!("Error fetching token: {}", error);
-                tokio::time::sleep(config.auth_fail_sleep).await;
-            }
-        }
-
-        // update_webchat_token(&state, &config, &client).await;
-        // update_direcline_token(&state, &config, &client).await;
-        tokio::time::sleep(config.auth_fail_sleep).await;
+        Ok(conv)
     }
 
-    Ok(())
-}
+    /// Create a new conversation token
+    ///
+    /// This function will create a new conversation token for the DirectLine API.
+    ///
+    ///    curl -X POST "https://europe.directline.botframework.com/v3/directline/tokens/generate" \
+    ///     -H "Authorization: Bearer $SECRET"
+    async fn create_directline_token(&self) -> Result<ConversationToken, MyError> {
+        let generate_url = self
+            .config
+            .directline
+            .base_url
+            .join("v3/directline/tokens/generate")?;
 
-async fn maintain_direcline_token(state: &MyState, config: &TeamsConfig, client: &Client) {
-    while !state.ct.is_cancelled() {
-        // If we are cancelled, break out of the loop
-        // Try to get the token. If we fail we will sleep for a bit and try again
-        // If we get it then we will update the token object in the state AND update the liveness check AND we set the token to None
+        let response = self
+            .client
+            .post(generate_url)
+            .bearer_auth(&self.config.directline.secret)
+            .send()
+            .await?
+            .error_for_status()?;
 
-        match update_direcline_token(state, config, client).await {
-            Ok(duration) => {
-                let sleep_duration = duration - config.auth_margin;
-                info!(
-                    "DirectLine token expires in: {} seconds",
-                    duration.as_secs()
-                );
-                tokio::time::sleep(sleep_duration).await;
-            }
-            Err(error) => {
-                info!("Error fetching DirectLine token: {}", error);
-                tokio::time::sleep(config.auth_fail_sleep).await;
-            }
-        }
+        let conv = response.json::<ConversationToken>().await?;
+
+        self.conversations
+            .write()
+            .await
+            .insert(conv.conversation_id.clone(), conv.clone());
+
+        Ok(conv)
+    }
+
+    /// Refresh the token for an existing conversation
+    ///
+    /// This function will refresh the token for a given conversation ID.
+    ///
+    ///    curl -X POST "https://europe.directline.botframework.com/v3/directline/tokens/refresh" \
+    ///     -H "Authorization: Bearer $TOKEN"
+    pub async fn refresh_directline_token(
+        &self,
+        conversation: &str,
+    ) -> Result<ConversationToken, MyError> {
+        let conversations = self.conversations.read().await;
+        let token = &conversations
+            .get(conversation)
+            .ok_or(MyError::Message("Conversation not found"))?
+            .token;
+
+        let refresh_url = self
+            .config
+            .directline
+            .base_url
+            .join("v3/directline/tokens/refresh")?;
+
+        let response = self
+            .client
+            .post(refresh_url)
+            .bearer_auth(token)
+            .send()
+            .await?
+            .error_for_status()?;
+
+        let conv = response.json::<ConversationToken>().await?;
+
+        self.conversations
+            .write()
+            .await
+            .insert(conversation.to_owned(), conv.clone());
+
+        Ok(conv)
+    }
+
+    /// Get the token for an existing conversation
+    ///
+    /// This function will get a conversation token for a given conversation ID.
+    ///
+    ///     curl -X GET "https://europe.directline.botframework.com/v3/directline/conversations/$CONV_ID" \
+    ///     -H "Authorization: Bearer $SECRET"
+    pub async fn reconnect_conversation(
+        &self,
+        conversation: &str,
+    ) -> Result<ConversationToken, MyError> {
+        let conv_url = self
+            .config
+            .directline
+            .base_url
+            .join(&format!("v3/directline/conversations/{}", conversation))?;
+
+        let response = self
+            .client
+            .get(conv_url)
+            .bearer_auth(&self.config.directline.secret)
+            .send()
+            .await?
+            .error_for_status()?;
+
+        let conv = response.json::<ConversationToken>().await?;
+
+        self.conversations
+            .write()
+            .await
+            .insert(conversation.to_owned(), conv.clone());
+
+        Ok(conv)
+    }
+
+    /// Send activity to a conversation
+    ///
+    /// This function will send an activity to a given conversation ID.
+    ///
+    ///    curl -X POST "https://europe.directline.botframework.com/v3/directline/conversations/$CONV_ID/activities"
+    ///     -H "Authorization: Bearer $SECRET"
+    pub async fn send_activity(&self, activity: &BotActivity) -> Result<BotActivity, MyError> {
+        let conversation = activity.conversation_id();
+
+        let conv_url = self.config.directline.base_url.join(&format!(
+            "v3/directline/conversations/{}/activities",
+            conversation
+        ))?;
+
+        let response = self
+            .client
+            .post(conv_url)
+            .bearer_auth(
+                &self
+                    .conversations
+                    .read()
+                    .await
+                    .get(conversation)
+                    .ok_or(MyError::Message("Conversation not found"))?
+                    .token,
+            )
+            .body(serde_json::to_string(activity)?)
+            .send()
+            .await?
+            .error_for_status()?;
+
+        Ok(response.json().await?)
+    }
+
+    /// Receive activity from a conversation
+    ///
+    /// This function will receive an activity from a given conversation ID.
+    ///
+    ///   curl -X GET "https://europe.directline.botframework.com/v3/directline/conversations/$CONV_ID/activities"
+    ///    -H "Authorization: Bearer $TOKEN"
+    pub async fn receive_activity(&self, conversation_id: &str) -> Result<BotActivity, MyError> {
+        let token = self
+            .conversations
+            .read()
+            .await
+            .get(conversation_id)
+            .ok_or(MyError::Message("Conversation not found"))?
+            .token
+            .clone();
+
+        let conv_url = self.config.directline.base_url.join(&format!(
+            "v3/directline/conversations/{}/activities",
+            conversation_id
+        ))?;
+
+        let response = self
+            .client
+            .get(conv_url)
+            .bearer_auth(&token)
+            .send()
+            .await?
+            .error_for_status()?;
+
+        Ok(response.json().await?)
     }
 }
 
-async fn maintain_webchat_token(state: &MyState, config: &TeamsConfig, client: &Client) {
+async fn maintain_webchat_token(state: &MyState, config: &BotApiConfig, client: &Client) {
     while !state.ct.is_cancelled() {
         // If we are cancelled, break out of the loop
         // Try to get the token. If we fail we will sleep for a bit and try again
@@ -377,52 +284,9 @@ fn jwt_expire_time(token: &str) -> Result<Duration, MyError> {
     Ok(Duration::from_secs(exp - now))
 }
 
-async fn update_direcline_token(
-    state: &MyState,
-    config: &TeamsConfig,
-    client: &Client,
-) -> Result<Duration, MyError> {
-    // Maintain DirectLine token
-
-    let directline_token_response = client
-        .post(config.directline.token_url.clone())
-        .header(
-            "Authorization",
-            format!("Bearer {}", config.directline.secret),
-        )
-        .send()
-        .await?;
-
-    match directline_token_response {
-        response if response.status().is_success() => {
-            let token: serde_json::Value = response.json().await?;
-            let directline_token =
-                token["token"].as_str().map(str::to_string).ok_or_else(|| {
-                    MyError::RequestTokenError("Missing token in directline".to_string())
-                })?;
-
-            *state.teams.directline_access_token.lock().await = Some(directline_token.clone());
-            info!("DirectLine token updated successfully");
-
-            // jwt_expire_time(&directline_token)
-            Ok(Duration::from_secs(3000))
-        }
-        response => {
-            error!(
-                "Failed to fetch DirectLine token: {:?} and {}",
-                response, config.directline.token_url
-            );
-            Err(MyError::RequestTokenError(format!(
-                "Failed to fetch DirectLine token: {:?} and {}",
-                response, config.directline.token_url
-            )))
-        }
-    }
-}
-
 async fn update_webchat_token(
     state: &MyState,
-    config: &TeamsConfig,
+    config: &BotApiConfig,
     client: &Client,
 ) -> Result<Duration, MyError> {
     let webchat_token_response = client
@@ -443,7 +307,7 @@ async fn update_webchat_token(
                 MyError::RequestTokenError("Missing token in webchat".to_string())
             })?;
 
-            *state.teams.webchat_access_token.lock().await = Some(webchat_token);
+            *state.bot_api.webchat_access_token.lock().await = Some(webchat_token);
             info!("WebChat token updated successfully");
 
             let refresh_wait = Duration::from_secs(3000);
@@ -469,7 +333,7 @@ async fn update_webchat_token(
     }
 }
 
-pub async fn test_connection(config: &TeamsConfig) -> Result<(), MyError> {
+pub async fn test_connection(config: &BotApiConfig) -> Result<(), MyError> {
     info!("I should test the App connection + auth here");
 
     info!("Connection info is: {:?}", config);

@@ -49,4 +49,5 @@ teams:
     token_url: https://europe.webchat.botframework.com/api/tokens
   directline:
     secret_file: bot/directline/secret
-    token_url: https://europe.directline.botframework.com/v3/directline/tokens/generate
+    base_url: https://europe.directline.botframework.com
+    # /v3/directline/tokens/generate

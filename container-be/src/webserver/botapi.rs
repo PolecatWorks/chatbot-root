@@ -1,11 +1,6 @@
-use log::{error, info};
-use serde::Deserialize;
 use warp::Filter;
 
-use crate::{
-    botapi::{handlers::message_post, Activity, BotResponses},
-    MyState,
-};
+use crate::{botapi::handlers::message_post, MyState};
 
 use super::with_state;
 
