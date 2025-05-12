@@ -1,11 +1,15 @@
+pub mod abc;
 pub mod config;
 pub mod directline;
+pub mod dl_apis;
 pub mod handlers;
 
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
+use abc::AbcWebChat;
 use base64::{prelude::BASE64_STANDARD, Engine};
 use config::BotApiConfig;
+
 use directline::{BotActivity, ConversationToken};
 use log::{error, info};
 use reqwest::Client;
@@ -16,7 +20,7 @@ use crate::{error::MyError, MyState};
 /// Client to interact with the DirectLine API
 /// This client is used to create and manage conversations with the DirectLine API.
 /// It uses the reqwest library to make HTTP requests and the serde library to serialize and deserialize JSON data.
-#[derive(Default, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct BotApi {
     pub config: BotApiConfig,
     client: Client,
@@ -24,11 +28,16 @@ pub struct BotApi {
     pub webchat_access_token: Arc<Mutex<Option<String>>>,
     pub directline_access_token: Arc<Mutex<Option<String>>>,
     conversations: Arc<RwLock<HashMap<String, ConversationToken>>>,
+
+    directline: AbcWebChat,
+    webchat: AbcWebChat,
 }
 
 impl BotApi {
     pub fn new(config: BotApiConfig, client: Client) -> Self {
         Self {
+            directline: AbcWebChat::new(config.directline.clone(), client.clone()),
+            webchat: AbcWebChat::new(config.webchat.clone(), client.clone()),
             config,
             client,
             access_token: Arc::new(Mutex::new(None)),
@@ -198,7 +207,10 @@ impl BotApi {
                     .read()
                     .await
                     .get(conversation)
-                    .ok_or(MyError::Message("Conversation not found"))?
+                    .ok_or(MyError::DynamicMessage(format!(
+                        "Conversation not found: {}",
+                        conversation
+                    )))?
                     .token,
             )
             .body(serde_json::to_string(activity)?)
@@ -290,7 +302,7 @@ async fn update_webchat_token(
     client: &Client,
 ) -> Result<Duration, MyError> {
     let webchat_token_response = client
-        .get(config.webchat.token_url.clone())
+        .get(config.webchat.base_url.clone())
         .header(
             "Authorization",
             format!("BotConnector {}", config.webchat.secret),
@@ -316,11 +328,11 @@ async fn update_webchat_token(
         Ok(response) => {
             error!(
                 "Failed to fetch WebChat token: {:?} from {}",
-                response, config.webchat.token_url
+                response, config.webchat.base_url
             );
             Err(MyError::RequestTokenError(format!(
                 "Failed to fetch WebChat token: {:?} from {}",
-                response, config.webchat.token_url
+                response, config.webchat.base_url
             )))
         }
         Err(error) => {

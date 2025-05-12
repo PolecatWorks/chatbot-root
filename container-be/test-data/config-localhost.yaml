@@ -46,7 +46,7 @@ teams:
   auth_margin: 30s
   webchat:
     secret_file: bot/webchat/secret
-    token_url: https://europe.webchat.botframework.com/api/tokens
+    base_url: https://europe.webchat.botframework.com
   directline:
     secret_file: bot/directline/secret
     base_url: https://europe.directline.botframework.com

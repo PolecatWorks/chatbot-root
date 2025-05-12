@@ -12,7 +12,7 @@ pub struct BotApiConfig {
     pub scope: String,
     pub id: String,
     pub secret: String,
-    pub webchat: WebChatConfig,       // WebChat configuration
+    pub webchat: DirectLineConfig,    // WebChat configuration
     pub directline: DirectLineConfig, // DirectLine configuration
     #[serde(with = "humantime_serde")]
     pub auth_fail_sleep: Duration,
@@ -29,9 +29,9 @@ impl Default for BotApiConfig {
             scope: Default::default(),
             id: Default::default(),
             secret: Default::default(),
-            webchat: WebChatConfig {
+            webchat: DirectLineConfig {
                 secret: Default::default(),
-                token_url: Url::parse("https://localhost").unwrap(),
+                base_url: Url::parse("https://localhost").unwrap(),
             },
             directline: DirectLineConfig {
                 secret: Default::default(),
@@ -46,7 +46,7 @@ impl Default for BotApiConfig {
 #[derive(Deserialize, Debug, Clone)]
 pub struct WebChatConfig {
     pub secret: String, // Secret for WebChat integration
-    pub token_url: Url, // URL to fetch WebChat token
+    pub base_url: Url,  // URL to fetch WebChat token
 }
 
 #[derive(Deserialize, Debug, Clone)]
