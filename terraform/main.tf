@@ -137,7 +137,7 @@ resource "azurerm_bot_service_azure_bot" "example" {
   resource_group_name = azurerm_resource_group.bot_rg.name
   sku                 = "F0"
   microsoft_app_id = azuread_application.bot_app.object_id
-
+  microsoft_app_type = "MultiTenant"
   endpoint = "https://informally-large-terrier.ngrok-free.app/api/messages"
 
   display_name = "Rust Teams Bot"
