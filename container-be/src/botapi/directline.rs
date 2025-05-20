@@ -27,6 +27,12 @@ pub enum BotActivity {
 }
 
 impl BotActivity {
+    pub fn service_url(&self) -> Option<&Url> {
+        match self {
+            BotActivity::ConversationUpdate(activity) => activity.service_url.as_ref(),
+            BotActivity::Message(activity) => activity.service_url.as_ref(),
+        }
+    }
     pub fn conversation_id(&self) -> &str {
         match self {
             BotActivity::ConversationUpdate(activity) => &activity.conversation.id,

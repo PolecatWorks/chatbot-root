@@ -1,11 +1,23 @@
 
 BE_DIR=container-be
 
-PG_SECRET=log4ham-pg
-PG_USER=$(shell kubectl -n log4ham get secret $(PG_SECRET) -o jsonpath="{.data.DB_USER}" | base64 --decode)
-PGPASSWORD=$(shell kubectl -n log4ham get secret $(PG_SECRET) -o jsonpath="{.data.DB_PASS}" | base64 --decode)
-PG_NAME=$(shell kubectl -n log4ham get secret $(PG_SECRET) -o jsonpath="{.data.DB_NAME}" | base64 --decode)
-DATABASE_URL=postgres://${PG_USER}:${PGPASSWORD}@localhost/${PG_NAME}
+k8s-creds: PG_SECRET=log4ham-pg
+k8s-creds: PG_USER=$(shell kubectl -n log4ham get secret $(PG_SECRET) -o jsonpath="{.data.DB_USER}" | base64 --decode)
+k8s-creds: PGPASSWORD=$(shell kubectl -n log4ham get secret $(PG_SECRET) -o jsonpath="{.data.DB_PASS}" | base64 --decode)
+k8s-creds: PG_NAME=$(shell kubectl -n log4ham get secret $(PG_SECRET) -o jsonpath="{.data.DB_NAME}" | base64 --decode)
+k8s-creds: DATABASE_URL=postgres://${PG_USER}:${PGPASSWORD}@localhost/${PG_NAME}
+	@echo Creating k8s creds
+
+
+
+guard-%:
+    @ if [ "${${*}}" = "" ]; then \
+        echo "Environment variable $* not set"; \
+        exit 1; \
+    fi
+
+local-creds:
+	@echo Creating local creds: ${DATABASE_URL}
 
 
 watch-run:
@@ -54,8 +66,9 @@ pg-test-container:
 	@kubectl delete pod pg-test-pod || true
 	@kubectl run -it --rm pg-test-pod --image=postgres:17.4 --env="POSTGRES_USER=${PG_USER}" --env="POSTGRES_PASSWORD=${PGPASSWORD}" --env="POSTGRES_DB=${PG_NAME}" --port=5432
 
-pg-docker-test-container:
+pg-docker-test-container: local-creds
 	@docker rm -f pg-test-container || true
+	@echo starting DB with ${DATABASE_URL}
 	@docker run -it --rm --name pg-test-container -e POSTGRES_USER=${PG_USER} -e POSTGRES_PASSWORD=${PGPASSWORD} -e POSTGRES_DB=${PG_NAME} -p 5432:5432 postgres:17.4
 
 pg-test-forward:
@@ -63,10 +76,15 @@ pg-test-forward:
 
 
 ngrok:
-	ngrok http --url=informally-large-terrier.ngrok-free.app 8080
+	ngrok http --host-header=rewrite --url=informally-large-terrier.ngrok-free.app 8080
+ngrok-python:
+	ngrok http --host-header=rewrite --url=informally-large-terrier.ngrok-free.app 8081
 ngrok-mgt:
 	open http://127.0.0.1:4040/inspect/http
 
+python-app: guard-MicrosoftAppId guard-MicrosoftAppPassword
+	cd container-python/initial_chat_bot && \
+		MicrosoftAppId=${MicrosoftAppId} MicrosoftAppPassword=${MicrosoftAppPassword} ../venv/bin/python3 app.py
 
 curl-hello:
 	curl -v http://localhost:8080/polecatteamsbot/hello

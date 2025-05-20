@@ -6,7 +6,7 @@ use url::Url;
 
 use crate::error::MyError;
 
-use super::directline::ConversationToken;
+use super::directline::{BotActivity, ConversationToken};
 
 pub trait DlService {
     fn get_secret(&self) -> &str;
@@ -16,10 +16,15 @@ pub trait DlService {
 }
 
 pub(crate) trait DlApis {
+    async fn reply_activity_with_auth(&self, inbound_activity: &BotActivity, activity: &BotActivity, auth: &String) -> Result<serde_json::Value, MyError>;
     async fn send_activity(
         &self,
-        conversation_id: &str,
-        activity: serde_json::Value,
+        activity: &BotActivity,
+    ) -> Result<serde_json::Value, MyError>;
+    async fn reply_activity(
+        &self,
+        inbound_activity: &BotActivity,
+        activity: &BotActivity,
     ) -> Result<serde_json::Value, MyError>;
     async fn receive_activity(&self, conversation_id: &str) -> Result<serde_json::Value, MyError>;
     async fn reconnect_conversation(
@@ -208,7 +213,7 @@ where
         let response = self
             .get_client()
             .get(conv_url)
-            .bearer_auth(&self.get_secret())
+            .bearer_auth(self.get_secret())
             .send()
             .await?
             .error_for_status()?;
@@ -268,6 +273,62 @@ where
         Ok(activities)
     }
 
+
+    async fn reply_activity_with_auth(
+        &self,
+        inbound_activity: &BotActivity,
+        activity: &BotActivity,
+        auth: &String
+    ) -> Result<serde_json::Value, MyError> {
+
+        let reply_url = inbound_activity
+            .service_url()
+            .clone()
+            .ok_or(MyError::AttributeNotFound("service_url"))?
+            .join(format!("/v3/conversations/{}/activities", inbound_activity.conversation_id()).as_str())
+            .map_err(MyError::from)?;
+
+        let response = self
+            .get_client()
+            .post(reply_url)
+            .bearer_auth(auth)
+            .json(&activity)
+            .send()
+            .await?
+            .error_for_status()?;
+
+        let result = response.json::<serde_json::Value>().await?;
+        Ok(result)
+    }
+
+    async fn reply_activity(
+        &self,
+        inbound_activity: &BotActivity,
+        activity: &BotActivity,
+    ) -> Result<serde_json::Value, MyError> {
+
+        let reply_url = inbound_activity
+            .service_url()
+            .clone()
+            .ok_or(MyError::AttributeNotFound("service_url"))?
+            .join(format!("/v3/conversations/{}/activities", inbound_activity.conversation_id()).as_str())
+            .map_err(MyError::from)?;
+
+        let response = self
+            .get_client()
+            .post(reply_url)
+            // .bearer_auth(self.get_secret())
+            .json(&activity)
+            .send()
+            .await?
+            .error_for_status()?;
+
+        let result = response.json::<serde_json::Value>().await?;
+        Ok(result)
+    }
+
+
+
     /// Asynchronously sends an activity to a conversation.
     ///
     /// This function performs the following steps:
@@ -303,9 +364,12 @@ where
     /// ```
     async fn send_activity(
         &self,
-        conversation_id: &str,
-        activity: serde_json::Value,
+        activity: &BotActivity,
     ) -> Result<serde_json::Value, MyError> {
+
+        let conversation_id = activity.conversation_id();
+
+
         let activity_url = self.get_base_url().join(&format!(
             "v3/directline/conversations/{}/activities",
             conversation_id

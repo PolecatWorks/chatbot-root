@@ -1,3 +1,4 @@
+use log::warn;
 use warp::Filter;
 
 use crate::{botapi::handlers::message_post, MyState};
@@ -13,8 +14,21 @@ pub fn api(
 pub fn messages(
     state: &MyState,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
-    messages_get(state).or(message_post_structured(state))
+    messages_get(state)
+        .or(message_post_structured(state))
+        .or(message_options())
     // .or(messages_post(state))
+}
+
+pub fn message_options() -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
+    warp::options().map(|| {
+        warn!("OPTIONS");
+        warp::reply::with_header(
+            warp::reply(),
+            "Access-Control-Allow-Origin",
+            "*",
+        )
+    })
 }
 
 pub fn messages_get(

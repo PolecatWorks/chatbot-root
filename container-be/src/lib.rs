@@ -152,6 +152,8 @@ pub async fn maintain_app_token(state: MyState) -> Result<(), MyError> {
 
     let client = state.client.clone();
 
+    println!("Checking auth endpoint: {}", config.auth_endpoint);
+
     // Fetch and parse the well-known endpoints to get issuer and token endpoint
     let well_known_url = config
         .auth_endpoint

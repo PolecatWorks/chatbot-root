@@ -95,3 +95,231 @@ Prepare a referese proxy for using with MS Teams.
 Ngrok seems like it provides the relevant reverse proxy capabaility to project to dev laptop.
 
     brew install ngrok
+
+
+curl --header "Content-Type: application/json" \
+  --request POST \
+  --header "Content-Type: application/json"  \
+  --data '{"client_id":"2abf7c88-8055-4870-8b5b-8b35d6cbfcfb","client_secret":"$APP_SECRET","grant_type":"client_credentials"}' \
+  https://login.microsoftonline.com/1fd80b61-a805-4a57-879b-45ddb39a660d/oauth2/v2.0/token
+
+
+curl -X POST \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=client_credentials&client_id=2abf7c88-8055-4870-8b5b-8b35d6cbfcfb&client_secret=$APP_SECRET&scope=https://api.botframework.com/.default" \
+  https://login.microsoftonline.com/1fd80b61-a805-4a57-879b-45ddb39a660d/oauth2/v2.0/token
+
+  https://informally-large-terrier.ngrok-free.app/api/messages
+
+
+# Tutorials and notes
+FROM HERE: https://learn.microsoft.com/en-us/azure/bot-service/bot-service-troubleshoot-authentication-problems?view=azure-bot-service-4.0&tabs=csharp
+
+    curl -k -X POST https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token -d "grant_type=client_credentials&client_id=APP_ID&client_secret=APP_PASSWORD&scope=https%3A%2F%2Fapi.botframework.com%2F.default"
+
+SO trying
+
+curl -X POST -d "grant_type=client_credentials&client_id=2abf7c88-8055-4870-8b5b-8b35d6cbfcfb&client_secret=$APP_SECRET$&scope=https%3A%2F%2Fapi.botframework.com%2F.default" https://login.microsoftonline.com/1fd80b61-a805-4a57-879b-45ddb39a660d/oauth2/v2.0/token
+
+NOW trying with new instructions:
+
+```
+
+
+
+
+
+```
+
+# Curl with the APP_ID
+Using the app id curl to the auth endpoint.
+Can use normal tenant OR can use TENANT_ID=botframework.com
+
+```bash
+curl -X POST \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=client_credentials" \
+  -d "client_id=${APP_ID}" \
+  -d "client_secret=${CLIENT_SECRET}" \
+  -d "scope=https://api.botframework.com/.default" \
+  https://login.microsoftonline.com/$TENANT_ID/oauth2/v2.0/token | jq -r '.access_token'
+```
+
+# Curl with the BOT_ID
+THIS does not work
+
+```bash
+curl -X POST \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=client_credentials" \
+  -d "client_id=${BOT_ID}" \
+  -d "client_secret=${CLIENT_SECRET}" \
+  -d "scope=https://api.botframework.com/.default" \
+  https://login.microsoftonline.com/$TENANT_ID/oauth2/v2.0/token
+  ```
+
+
+# Trying the botframework endpoints
+
+
+```bash
+curl -X POST \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=client_credentials" \
+  -d "client_id=${APP_ID}" \
+  -d "client_secret=${CLIENT_SECRET}" \
+  -d "scope=https://api.botframework.com/.default" \
+  https://login.microsoftonline.com/botframework.com//oauth2/v2.0/token
+```
+
+# EXTRA stuff
+
+create an az identity
+
+```bash
+ az identity create --resource-group "bot-resource-group" --name "polecatworks-identity"
+{
+  "clientId": "9bc178cc-2ea6-429c-a559-6910d64839e5",
+  "id": "/subscriptions/9d415cc4-075a-47ac-ba34-4328587f07ba/resourcegroups/bot-resource-group/providers/Microsoft.ManagedIdentity/userAssignedIdentities/polecatworks-identity",
+  "location": "westeurope",
+  "name": "polecatworks-identity",
+  "principalId": "2fb044dd-f854-4c56-988a-66bd9cccc7d6",
+  "resourceGroup": "bot-resource-group",
+  "systemData": null,
+  "tags": {},
+  "tenantId": "1fd80b61-a805-4a57-879b-45ddb39a660d",
+  "type": "Microsoft.ManagedIdentity/userAssignedIdentities"
+}
+```
+
+
+
+
+# Bot Activity
+
+Information on the bot activity: https://github.com/Microsoft/botframework-sdk/blob/main/specs/botframework-activity/botframework-activity.md
+Spec of types: https://github.com/Microsoft/botframework-sdk/blob/main/specs/botframework-activity/botframework-activity.md#basic-activity-structure
+
+Full walkthrough of registration: https://learn.microsoft.com/en-us/microsoftteams/platform/bots/how-to/authentication/add-authentication?tabs=dotnet%2Cdotnet-sample
+
+
+# Curl command into the bot api
+
+
+# Example removing -v and adding -s for silent progress meter:
+
+
+JSON_PAYLOAD='{"id":null,"timestamp":null,"localTimestamp":null,"localTimezone":null,"serviceUrl":null,"channelId":null,"from":{"id":"polecatworks-app@4UxUYfL0I8OI8XS0VPFfXL0aJIl2Xi1vA0gestrIK91ktXV64dlfJQQJ99BDACi5YpzAArohAAABAZBS1aGL","name":"polecatworks-app"},"conversation":{"id":"4ApDY79U53qLmjG0xfSzX1-fr","name":null},"recipient":{"id":"ac2b8bda-1018-4748-8c25-3b2aadba056c","name":""},"textFormat":"plain","locale":"en-GB","text":"Hello from the bot!","attachments":[],"entities":[{"type":"ClientCapabilities","requires_bot_state":null,"supports_listening":null,"supports_tts":null}],"channelData":{"clientActivityID":"fdtv09eugi"},"replyToId":"4ApDY79U53qLmjG0xfSzX1-fr|0000000"}'
+
+
+
+curl -s -X POST \
+    -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+    -H "Content-Type: application/json" \
+    -d "${JSON_PAYLOAD}" \
+    "${API_ENDPOINT}"
+
+
+
+
+# Bot Service App
+
+Create an Azure deployment for communicating with an AI. Prepare to set this up to integrate back MS Teams.
+
+
+## Flowchart of communications
+
+
+```mermaid
+ flowchart LR
+      A[Start]-->B[Do you have coffee beans?]
+      B-->|Yes|C[Grind the coffee beans]
+      B-->|No|D[Buy ground coffee beans]
+      C-->E[Add coffee grounds to filter]
+      D-->E
+      E-->F[Add hot water to filter]
+      F-->G[Enjoy!]
+```
+
+## Interaction flow
+
+https://mermaid.js.org/syntax/sequenceDiagram.html
+
+Start a conversation
+
+```mermaid
+sequenceDiagram
+    API ->> BotService: POST /v3/conversations
+    BotService ->> API: [200]
+
+```
+
+The new Message call is
+
+    {
+        "bot": {
+            "id": "12345678",
+            "name": "bot's name"
+        },
+        "isGroup": false,
+        "members": [
+            {
+                "id": "1234abcd",
+                "name": "recipient's name"
+            }
+        ],
+        "topicName": "News Alert"
+    }
+
+
+# Trying the official tutorial
+
+https://learn.microsoft.com/en-us/azure/bot-service/bot-service-quickstart-create-bot?view=azure-bot-service-4.0&tabs=python%2Cvs
+
+# Load to Bot Emulator
+
+    http://localhost:8080/api/messages
+
+    http://localhost:3978/api/messages
+
+
+# App token
+
+
+
+curl -v -X POST \
+-H "Authorization: Bearer $CONV_TOKEN" \
+-H 'Content-Type: application/json' \
+-d '{
+    "type": "message",
+    "locale": "en-EN",
+    "from": {
+        "id": "user1",
+        "name": "Optional User Name"
+    },
+    "text": "HELLO BOT"
+}' \
+'https://europe.directline.botframework.com/v3/conversations/1dwhcM1PWhh7YcOnAWecmo-eu/activities'
+
+
+
+curl -X POST \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  -d "grant_type=client_credentials&client_id=$APP_ID&client_secret=$TOKEN&scope=https://directline.botframework.com/.default" \
+  https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token
+
+
+curl -X POST \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  -d "grant_type=client_credentials&client_id=$APP_ID$&client_secret=$TOKEN&scope=https://directline.botframework.com/.default" \
+  https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token
+
+
+curl -X POST \
+-H "Authorization: Bearer $TOKEN" \
+-H 'Content-Type: application/json' \
+'https://europe.directline.botframework.com/v3/conversations'
+
+
+POST https://directline.botframework.com/v3/directline/conversations
+Authorization: Bearer SECRET_OR_TOKEN

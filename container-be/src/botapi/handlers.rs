@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use log::{error, info};
 
 use crate::{botapi::dl_apis::DlApis, error::MyError, MyState};
@@ -17,7 +19,7 @@ pub async fn message_post(
 
     let client = state.client.clone();
 
-    match body {
+    match &body {
         BotActivity::ConversationUpdate(activity) => {
             info!(
                 "ConversationUpdate: from: {} -> {} = {}",
@@ -38,7 +40,16 @@ pub async fn message_post(
 
             let reply = BotActivity::Message(my_message);
 
-            let abc = state.bot_api.directline.create_conversation().await?;
+            // let abc = state.bot_api.directline.create_conversation().await?;
+
+
+            state.bot_api
+                .directline
+                .reply_activity_with_auth(&body, &reply, &(*state.bot_api.access_token.lock().await).clone().unwrap())
+                // .reply_activity(&body, &reply)
+                .await
+                .map_err(|err| MyError::DynamicMessage(format!("Send activity failed {}", err)))?;
+
 
             // let conv_access_response = state
             //     .bot_api
@@ -73,7 +84,7 @@ pub async fn message_post(
             //     .ok_or(MyError::AttributeNotFound("service_url"))?;
 
             let reply_url = activity
-                .service_url
+                .service_url.clone()
                 .ok_or(MyError::AttributeNotFound("service_url"))?
                 .join(format!("/v3/conversations/{}/activities", activity.conversation.id).as_str())
                 .map_err(MyError::from)?;
@@ -89,6 +100,7 @@ pub async fn message_post(
             //     .ok_or(MyError::AttributeNotFound("service_url"))?;
 
             println!("REPLY URL: {}", reply_url);
+
 
             // reply_url.set_path(&format!(
             //     "/v3/conversations/{}/activities",
@@ -117,6 +129,17 @@ pub async fn message_post(
             let reply = BotActivity::Message(
                 my_message, // .map_err(|_| MyError::Message("ActivityBuilder"))? // Handle error from ActivityBuilder
             );
+
+            state.bot_api
+                .directline
+                .reply_activity(&body, &reply)
+                .await
+                .map_err(|err| MyError::DynamicMessage(format!("Send activity failed {}", err)))?;
+
+            // state.bot_api.directline
+            //     .send_activity(&reply)
+            //     .await
+            //     .map_err(|err| MyError::DynamicMessage(format!("Send activity failed {}", err)))?;
 
             // let xxx = state.bot_api.send_activity(&reply).await?;
 
