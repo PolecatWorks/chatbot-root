@@ -1,20 +1,45 @@
 
 BE_DIR=container-be
+PYTHON_DIR=container-python
 
-k8s-creds: PG_SECRET=log4ham-pg
-k8s-creds: PG_USER=$(shell kubectl -n log4ham get secret $(PG_SECRET) -o jsonpath="{.data.DB_USER}" | base64 --decode)
-k8s-creds: PGPASSWORD=$(shell kubectl -n log4ham get secret $(PG_SECRET) -o jsonpath="{.data.DB_PASS}" | base64 --decode)
-k8s-creds: PG_NAME=$(shell kubectl -n log4ham get secret $(PG_SECRET) -o jsonpath="{.data.DB_NAME}" | base64 --decode)
-k8s-creds: DATABASE_URL=postgres://${PG_USER}:${PGPASSWORD}@localhost/${PG_NAME}
+NAME=polecat-chatbot
+TAG ?= 0.3.0
+REPO ?= dockerreg.k8s:5000/polecatworks
+
+DOCKER=docker
+
+
+.ONESHELL:
+docker-build:
+	{ \
+	$(DOCKER) build container-python -t $(NAME) -f Dockerfile; \
+	$(DOCKER) image ls $(NAME); \
+	}
+
+docker:
+	$(DOCKER)  build container-python -t $(NAME) -f container-python/Dockerfile
+
+dockerx:
+	$(DOCKER)  buildx build --push container-python -t $(REPO)/$(NAME):$(TAG) -f container-python/Dockerfile --platform linux/arm64/v8,linux/amd64
+
+
+
+
+k8s-creds: export PG_SECRET=log4ham-pg
+k8s-creds: export PG_USER=$(shell kubectl -n log4ham get secret $(PG_SECRET) -o jsonpath="{.data.DB_USER}" | base64 --decode)
+k8s-creds: export PGPASSWORD=$(shell kubectl -n log4ham get secret $(PG_SECRET) -o jsonpath="{.data.DB_PASS}" | base64 --decode)
+k8s-creds: export PG_NAME=$(shell kubectl -n log4ham get secret $(PG_SECRET) -o jsonpath="{.data.DB_NAME}" | base64 --decode)
+k8s-creds: export DATABASE_URL=postgres://${PG_USER}:${PGPASSWORD}@localhost/${PG_NAME}
+k8s-creds:
 	@echo Creating k8s creds
 
 
 
 guard-%:
-    @ if [ "${${*}}" = "" ]; then \
-        echo "Environment variable $* not set"; \
-        exit 1; \
-    fi
+	@ if [ "${${*}}" = "" ]; then \
+		echo "Environment variable $* not set"; \
+		exit 1; \
+	fi
 
 local-creds:
 	@echo Creating local creds: ${DATABASE_URL}
@@ -42,6 +67,30 @@ terraform-apply:
 
 terraform-destroy:
 	cd terraform && terraform destroy
+
+python-venv:
+	@echo Creating python venv
+	cd container-python && \
+	python3 -m venv venv && \
+	venv/bin/pip install --upgrade pip && \
+	venv/bin/pip install poetry && \
+	venv/bin/poetry install --with dev && \
+	venv/bin/pip install -e .[dev]
+
+python-run:
+	@echo Running python app
+	cd container-python && \
+	venv/bin/chatbot start --secrets tests/test_data/secrets --config tests/test_data/config.yaml
+
+
+python-dev:
+	@echo Dev run python app
+	cd container-python && \
+	venv/bin/adev runserver
+
+
+python-docker:
+	$(DOCKER)  build container-python -t $(NAME) -f container-python/Dockerfile
 
 
 pg-login:
@@ -77,8 +126,10 @@ pg-test-forward:
 
 ngrok:
 	ngrok http --host-header=rewrite --url=informally-large-terrier.ngrok-free.app 8080
+ngrok-python-dev:
+	ngrok http --host-header=rewrite --url=informally-large-terrier.ngrok-free.app 8000
 ngrok-python:
-	ngrok http --host-header=rewrite --url=informally-large-terrier.ngrok-free.app 8081
+	ngrok http --host-header=rewrite --url=informally-large-terrier.ngrok-free.app 8080
 ngrok-mgt:
 	open http://127.0.0.1:4040/inspect/http
 

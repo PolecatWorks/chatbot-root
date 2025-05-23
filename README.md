@@ -287,6 +287,75 @@ https://learn.microsoft.com/en-us/azure/bot-service/bot-service-quickstart-creat
 
 
 
+
+# Working webchat token
+
+
+
+
+
+# Working Webchat
+## Generate a token (DOES NOT WORK)
+
+##  start a conversation
+
+## get list of conversations
+
+
+## rejoin a conversation (webchat) - not working
+
+
+
+
+
+
+
+# Working directline
+##  generate a token
+
+##  start a conversation
+
+## rejoin a conversation (directline)
+
+
+## get list of conversations
+
+
+## Send an activity BROKEN
+curl -v -X POST \
+-H "Authorization: Bearer $CONV_TOKEN" \
+-H 'Content-Type: application/json' \
+-d '{
+    "locale": "en-EN",
+    "type": "message",
+    "from": {
+        "id": "Ben"
+    },
+    "text": "hello"
+}' \
+'https://europe.directline.botframework.com/v3/directline/conversations/1dwhcM1PWhh7YcOnAWecmo-eu/activities'
+
+
+
+
+
+
+## Join a conversation
+https://learn.microsoft.com/en-us/azure/bot-service/rest-api/bot-framework-rest-direct-line-3-0-authentication?view=azure-bot-service-4.0
+
+When trying this i can request a token for a given conversation BUT the conversation ID for the conversation from the conversationUpdate is not found
+
+CONVERSATION_ID=Insm4hllrx5Jo9i20EDPCI-eu
+curl -X GET "https://europe.directline.botframework.com/v3/directline/conversations/${CONVERSATION_ID}" \
+-H "Authorization: Bearer $TOKEN"
+
+
+
+
+
+# Directline API
+
+
 curl -v -X POST \
 -H "Authorization: Bearer $CONV_TOKEN" \
 -H 'Content-Type: application/json' \
