@@ -59,7 +59,7 @@ def service_app_create(app: web.Application, config: ServiceConfig) -> web.Appli
 
 
     # Add the bot settings and adapter to the app
-    app[keys.botsettings] = BotFrameworkAdapterSettings(config.bot.app_id, config.bot.app_password)
+    app[keys.botsettings] = BotFrameworkAdapterSettings(config.bot.app_id, config.bot.app_password.get_secret_value())
     app[keys.botadapter] = BotFrameworkAdapter(app[keys.botsettings])
 
     app[keys.botadapter].on_turn_error = on_error
