@@ -6,5 +6,5 @@ metadata:
   labels:
     {{- include "chatbot.labels" . | nindent 4 }}
 data:
-  serviceconfig.yaml: |
+  config.yaml: |
     {{- include "chatbot.config" . | nindent 4 }}

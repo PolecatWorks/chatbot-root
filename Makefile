@@ -98,11 +98,11 @@ python-docker:
 python-docker-run: python-docker
 	$(DOCKER) run -it --rm \
 		--name $(NAME) \
-		-v $(shell pwd)/container-python/tests/test_data/secrets:/app/secrets \
+		-v $(shell pwd)/container-python/tests/test_data/secrets:/opt/app/secrets \
 		-v $(shell pwd)/container-python/tests/test_data/config.yaml:/opt/app/configs/config.yaml \
 		-p 8080:8080 \
 		$(NAME) \
-		start --secrets /app/secrets --config /opt/app/configs/config.yaml
+		start --secrets /opt/app/secrets --config /opt/app/configs/config.yaml
 
 helm:
 	@echo Creating helm chart

@@ -1,6 +1,6 @@
 ---
 image:
-  repository: ghcr.io/polecatworks/k8s-python
+  repository: ghcr.io/polecatworks/chatbot-root
   tag: main
   pullPolicy: Always
 

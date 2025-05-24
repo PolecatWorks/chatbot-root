@@ -1,6 +1,6 @@
 from pydantic import Field, BaseModel
 from chatbot.hams.config import HamsConfig
-from pydantic import Field, BaseModel
+from pydantic import Field, BaseModel, SecretStr
 from pydantic import HttpUrl
 from pydantic_settings import BaseSettings, YamlConfigSettingsSource, SettingsConfigDict
 from pydantic_file_secrets import FileSecretsSettingsSource
@@ -26,7 +26,7 @@ class BotConfig(BaseModel):
         # default=DefaultConfig.APP_ID,
         description="Microsoft App ID",
     )
-    app_password: str = Field(
+    app_password: SecretStr = Field(
         # default=DefaultConfig.APP_PASSWORD,
         description="Microsoft App Password",
     )

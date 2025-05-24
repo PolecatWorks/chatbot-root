@@ -8,7 +8,7 @@ import click
 import sys
 import logging
 import logging.config
-
+from pydantic_yaml import to_yaml_str
 
 from typing import List
 
@@ -84,14 +84,11 @@ def start(ctx, config, secrets):
     configObj: ServiceConfig = ServiceConfig.from_yaml(config.name, secrets)
 
 
-
-    # logging.basicConfig(level=logging.INFO)
-
     # Load logging configuration from YAML file
     logging.config.dictConfig(configObj.logging)
 
     logger = logging.getLogger(__name__)
-    logger.info(configObj)
+    print(to_yaml_str(configObj, indent=2))
 
 
     service_start(configObj)
