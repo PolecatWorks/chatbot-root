@@ -38,7 +38,7 @@ jobs:
       - name: Package Helm charts
         id: test-variables
         run: |
-          cd chart
+          cd charts
           find . -type d -maxdepth 1 -not -path "." | while read dir; do
             echo "Processing directory: $dir"
             chart_info=$(helm show chart "$dir" 2>/dev/null)
@@ -64,7 +64,7 @@ jobs:
 
       - name: Push Helm chart to GitHub Container Registry
         run: |
-          cd chart
+          cd charts
           find . -type f -name "*.tgz" | while read file; do
             echo "Processing file: $file"
 

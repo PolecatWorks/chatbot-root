@@ -23,7 +23,7 @@ logging:
 #   app_id: bot/id
 #   app_password: bot/passord
 webservice:
-  url: http://localhost:8080
+  url: http://0.0.0.0:8080
   prefix: pie/v0
 hams:
   url: http://localhost:8079

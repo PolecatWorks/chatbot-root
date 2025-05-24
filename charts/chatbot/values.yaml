@@ -21,7 +21,7 @@ readinessProbe:
   periodSeconds: 5
 
 image: &image
-  repository: polecatworks/k8s-python
+  repository: polecatworks/chatbot-root
   tag: latest
   pullPolicy: IfNotPresent
 
@@ -89,10 +89,9 @@ configs: {}  # Note: Defaults provided in helm configs dir
 
 
 command:
-- k8s-python
 - start
 - --config
-- /opt/app/configs/serviceconfig.yaml
+- /opt/app/configs/config.yaml
 - --secrets
 - /opt/app/secrets
 
@@ -101,16 +100,16 @@ secretName: null
 volumes: &volumes
   - name: configs
     configMap:
-      name: "{{ template \"k8s-python.fullname\" . }}"
-  - name: objects
-    emptyDir:
-      sizeLimit: 500Mi
+      name: "{{ template \"chatbot.fullname\" . }}"
+  # - name: objects
+  #   emptyDir:
+  #     sizeLimit: 500Mi
   - name: secrets
     projected:
       sources:
         - secret:
             # optional: true
-            name: "{{ .Values.secretName | default (include \"k8s-python.fullname\" .) }}"
+            name: "{{ .Values.secretName | default (include \"chatbot.fullname\" .) }}"
             items:
               - key: access_key_id
                 path: s3/access_key_id
@@ -121,9 +120,9 @@ volumes: &volumes
 volumeMounts: &volume-mount
   - name: configs
     mountPath: /opt/app/configs
-  - name: objects
-    # TODO: remove objects as we use real object-store
-    mountPath: /opt/app/objects
+  # - name: objects
+  #   # TODO: remove objects as we use real object-store
+  #   mountPath: /opt/app/objects
   - name: secrets
     mountPath: /opt/app/secrets
 

@@ -3,10 +3,13 @@ BE_DIR=container-be
 PYTHON_DIR=container-python
 
 NAME=polecat-chatbot
+HELM_NAME=chatbot
 TAG ?= 0.3.0
 REPO ?= dockerreg.k8s:5000/polecatworks
 
 DOCKER=docker
+
+BASE_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
 
 .ONESHELL:
@@ -92,6 +95,19 @@ python-dev:
 python-docker:
 	$(DOCKER)  build container-python -t $(NAME) -f container-python/Dockerfile
 
+python-docker-run: python-docker
+	$(DOCKER) run -it --rm \
+		--name $(NAME) \
+		-v $(shell pwd)/container-python/tests/test_data/secrets:/app/secrets \
+		-v $(shell pwd)/container-python/tests/test_data/config.yaml:/opt/app/configs/config.yaml \
+		-p 8080:8080 \
+		$(NAME) \
+		start --secrets /app/secrets --config /opt/app/configs/config.yaml
+
+helm:
+	@echo Creating helm chart
+	cd charts && \
+	helm package ${HELM_NAME}
 
 pg-login:
 	@PGPASSWORD=${PGPASSWORD} psql -h localhost -U ${PG_USER} -d ${PG_NAME}
