@@ -27,6 +27,7 @@ pydantic-settings = {extras = ["yaml"], version = "^2.6.1"}
 pydantic-file-secrets = "^0.4.4"
 prometheus-async = "^25.1.0"
 botbuilder-integration-aiohttp= ">=4.14.0"
+google-genai = "^1.16.1"
 
 
 [tool.poetry.group.dev.dependencies]

@@ -7,7 +7,7 @@ from pydantic_file_secrets import FileSecretsSettingsSource
 from pathlib import Path
 from typing import Dict, Any, Self
 from datetime import timedelta
-
+from chatbot.gemini.config import GeminiConfig
 
 import os
 
@@ -30,6 +30,7 @@ class BotConfig(BaseModel):
         # default=DefaultConfig.APP_PASSWORD,
         description="Microsoft App Password",
     )
+
 
 
 # TODO: Look here in future: https://github.com/pydantic/pydantic/discussions/2928#discussioncomment-4744841
@@ -62,6 +63,8 @@ class ServiceConfig(BaseSettings):
 
     logging: Dict[str, Any] = Field(description="Logging configuration")
     bot: BotConfig = Field(description="Bot configuration")
+    gemini: GeminiConfig = Field(description="Gemini configuration")
+
     webservice: WebServerConfig = Field(description="Web server configuration")
     hams: HamsConfig = Field(description="Health and monitoring configuration")
     events: EventConfig = Field(description="Process costs for events")
