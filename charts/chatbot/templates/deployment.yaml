@@ -39,7 +39,9 @@ spec:
       containers:
         - name: chatbot
           env: {{- include "chatbot.env" . | nindent 10 }}
-          command: {{- .Values.command | toYaml | nindent 10 }}
+          {{- with .Values.command }}
+          command: {{- toYaml . | nindent 10 }}
+          {{- end }}
           {{- with .Values.args }}
           args: {{- toYaml . | nindent 10 }}
           {{- end }}

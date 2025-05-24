@@ -88,7 +88,7 @@ affinity: {}
 configs: {}  # Note: Defaults provided in helm configs dir
 
 
-command:
+args:
 - start
 - --config
 - /opt/app/configs/config.yaml
@@ -111,10 +111,10 @@ volumes: &volumes
             # optional: true
             name: "{{ .Values.secretName | default (include \"chatbot.fullname\" .) }}"
             items:
-              - key: access_key_id
-                path: s3/access_key_id
-              - key: secret_key
-                path: s3/secret_key
+              - key: app_password
+                path: bot/app_password
+              - key: app_id
+                path: bot/app_id
 
 
 volumeMounts: &volume-mount
