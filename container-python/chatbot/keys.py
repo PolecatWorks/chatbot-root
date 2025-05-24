@@ -9,3 +9,7 @@ webservice = aiohttp.web.AppKey("webservice")
 botsettings = aiohttp.web.AppKey("botsettings")
 botadapter = aiohttp.web.AppKey("botadapter")
 bot = aiohttp.web.AppKey("bot")
+
+# The key for the Gemini service, used to store and retrieve Gemini-related data
+# and configurations in the aiohttp application context.
+gemini = aiohttp.web.AppKey("gemini")

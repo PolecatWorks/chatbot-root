@@ -10,6 +10,8 @@ from chatbot.bot import MyBot, on_error
 from chatbot import keys
 from aiohttp import web
 from datetime import datetime, timezone
+from chatbot.gemini import gemini_app_create
+
 
 from botbuilder.core import  BotFrameworkAdapterSettings, BotFrameworkAdapter, TurnContext
 
@@ -64,7 +66,8 @@ def service_app_create(app: web.Application, config: ServiceConfig) -> web.Appli
 
     app[keys.botadapter].on_turn_error = on_error
 
-    app[keys.bot] = MyBot()
+    app[keys.bot] = MyBot(app)
+
 
 
 
@@ -87,6 +90,7 @@ def service_init(app: web.Application, config: ServiceConfig):
 
     service_app_create(app, config)
     hams_app_create(app, config.hams)
+    gemini_app_create(app, config.gemini)
     return app
 
 

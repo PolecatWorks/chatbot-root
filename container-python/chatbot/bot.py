@@ -4,6 +4,8 @@
 from botbuilder.core import ActivityHandler, TurnContext
 from botbuilder.schema import ChannelAccount
 from botbuilder.schema import Activity, ActivityTypes
+from aiohttp import web
+from chatbot import keys
 
 from datetime import datetime
 import traceback
@@ -47,8 +49,17 @@ async def on_error(context: TurnContext, error: Exception):
 class MyBot(ActivityHandler):
     # See https://aka.ms/about-bot-activity-message to learn more about the message and other activity types.
 
+    def __init__(self, app: web.Application):
+        super().__init__()
+        self.app = app
+
     async def on_message_activity(self, turn_context: TurnContext):
-        await turn_context.send_activity(f"You said '{ turn_context.activity.text }'")
+
+        llm_reply = self.app[keys.gemini].chat(turn_context.activity.text)
+
+
+
+        await turn_context.send_activity(f"Chat said '{ llm_reply }'")
 
     async def on_members_added_activity(
         self,
