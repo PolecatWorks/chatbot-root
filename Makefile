@@ -100,7 +100,7 @@ python-docker-run: python-docker
 		--name $(NAME) \
 		-v $(shell pwd)/container-python/tests/test_data/secrets:/opt/app/secrets \
 		-v $(shell pwd)/container-python/tests/test_data/config.yaml:/opt/app/configs/config.yaml \
-		-p 8080:8080 \
+		-p 8080:8080 -p 8079:8079 \
 		$(NAME) \
 		start --secrets /opt/app/secrets --config /opt/app/configs/config.yaml
 
