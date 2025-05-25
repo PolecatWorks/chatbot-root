@@ -47,6 +47,9 @@ async def service_coroutine_cleanup(app: web.Application):
     logger.info("Service: coroutine cleanup")
 
 
+
+
+
 def service_app_create(app: web.Application, config: ServiceConfig) -> web.Application:
     """
     Create the service with the given configuration file

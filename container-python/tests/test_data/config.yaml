@@ -28,6 +28,10 @@ webservice:
 bot: {}
 gemini:
   model: gemini-2.0-flash
+  system_instruction:
+    - text: "You are a helpful assistant."
+  max_output_tokens: 500
+  temperature: 0.1
 hams:
   url: http://localhost:8079
   prefix: hams
