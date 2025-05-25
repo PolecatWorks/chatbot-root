@@ -398,7 +398,8 @@ Authorization: Bearer SECRET_OR_TOKEN
 
 Create your app secret
 
-  kubectl create secret generic dev-chatbot -n chatbot --from-file=container-python/tests/test_data/secrets/bot/app_id --from-file=container-python/tests/test_data/secrets/bot/app_password
+  kubectl create secret generic dev-chatbot -n chatbot --from-file=container-python/tests/test_data/secrets/bot/app_id --from-file=container-python/tests/test_data/secrets/bot/app_password --from-file=container-python/tests/test_data/secrets/gemini/gcp_llm_key
+
   kubectl create secret docker-registry dockerconfigjson-ghcr-io --docker-server=ghcr.io --docker-username=$GHCR_USERNAME --docker-password=$GHCR_TOKEN
 
 Deploy to your local k8s using helm on the command line

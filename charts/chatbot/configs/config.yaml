@@ -12,21 +12,21 @@ logging:
       level: INFO
       stream: ext://sys.stdout
   loggers:
-    k8spython.hams:
+    chatbot.hams:
       handlers: [console]
-      level: INFO
+      level: WARNING
       propagate: False
   root:
     handlers: [console]
     level: INFO
-# bot:
-#   app_id: bot/id
-#   app_password: bot/passord
 webservice:
-  url: http://localhost:8080
+  url: http://0.0.0.0:8080
   prefix: pie/v0
+bot: {}
+gemini:
+  model: gemini-2.0-flash
 hams:
-  url: http://localhost:8079
+  url: http://0.0.0.0:8079
   prefix: hams
   shutdownDuration: P0DT0H0M10S
   checks:

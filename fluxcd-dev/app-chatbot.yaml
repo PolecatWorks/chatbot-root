@@ -1,0 +1,57 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: app
+spec:
+  releaseName: app
+  chart:
+    spec:
+      chart: helm-charts/chatbot-root
+      version: 0.0.0
+      sourceRef:
+        kind: HelmRepository
+        namespace: flux-system
+        name: polecatworks
+  interval: 50m
+  install:
+    remediation:
+      retries: 3
+  values:
+    image:
+      repository: ghcr.io/polecatworks/chatbot-root
+      tag: main
+      pullPolicy: Always
+    imagePullSecrets:
+      - name: dockerconfigjson-ghcr-io
+    devsecops:
+      RequestAuthentication:
+        jwtRules: []
+          # - issuer: http://dev.k8s/auth/realms/dev
+          #   jwksUri: http://keycloak.security/auth/realms/dev/protocol/openid-connect/certs
+          #   forwardOriginalToken: true
+          #   audiences:
+          #     - app-cake
+      AuthorizationPolicy:
+        rules: []
+        # - to:
+        #   - operation:
+        #       methods:
+        #       - GET
+        #       paths:
+        #       - /cake/v0/chunks
+        #   when:
+        #   - key: request.auth.claims[resource_access][app-pie][roles]
+        #     values:
+        #     - chunks-read
+        # - to:
+        #   - operation:
+        #       methods:
+        #       - POST
+        #       - PUT
+        #       paths:
+        #       - /cake/v0/chunks
+        #   when:
+        #   - key: request.auth.claims[resource_access][app-pie][roles]
+        #     values:
+        #     - chunks-write

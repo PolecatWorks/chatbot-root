@@ -12,9 +12,9 @@ logging:
       level: INFO
       stream: ext://sys.stdout
   loggers:
-    k8spython.hams:
+    chatbot.hams:
       handlers: [console]
-      level: INFO
+      level: WARNING
       propagate: False
   root:
     handlers: [console]
