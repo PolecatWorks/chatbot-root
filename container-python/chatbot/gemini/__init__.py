@@ -45,8 +45,15 @@ class Gemini:
             system_instruction=self.config.system_instruction,
             temperature=self.config.temperature,
             max_output_tokens=self.config.max_output_tokens,
+            automatic_function_calling= {"disable": True}, # Disable automatic function calling so we can control it better
+            # tool_config= {"function_calling_config": {"mode": "any"}},  # This did not work and resulted in large number of Genai calls
             tools=[
-                types.Tool(function_declarations=[tools.add_numbers_tool_definition])
+                # types.Tool(function_declarations=[tools.add_numbers_tool_definition, tools.sum_numbers_tool_definition]),
+                # types.Tool(function_declarations=[tools.multiply_numbers]),
+                tools.multiply_numbers, # Use the function directly benefiting from function descriptors in comments
+                tools.sum_numbers,
+                # types.Tool(function_declarations=[tools.add_numbers_tool_definition]),
+                # types.Tool(function_declarations=[tools.sum_numbers_tool_definition]),
             ],
         )
 
@@ -72,7 +79,6 @@ class Gemini:
         Returns:
             str: text response for the bot
         """
-        # Placeholder for actual chat logic
 
 
         contents = [
@@ -116,8 +122,31 @@ class Gemini:
                         contents.append(types.Content(role="model", parts=[types.Part(function_call=tool_call)])) # Append the model's function call message
                         contents.append(types.Content(role="user", parts=[function_response_part])) # Append the function response
 
+                    case "sum_numbers":
+                        # Call the sum_numbers tool with the provided arguments
+                        logger.info(f"Calling tool: {tool_call.name} with args: {tool_call.args}")
+                        args = tool_call.args
+                        result = tools.sum_numbers(**args)
 
-                        # return f"add_numbers result: {result}"
+                        function_response_part = types.Part.from_function_response(
+                            name=tool_call.name,
+                            response={"result": result},
+                        )
+                        contents.append(types.Content(role="model", parts=[types.Part(function_call=tool_call)]))
+                        contents.append(types.Content(role="user", parts=[function_response_part])) # Append the function response
+                    case "multiply_numbers":
+                        # Call the multiply_numbers tool with the provided arguments
+                        logger.info(f"Calling tool: {tool_call.name} with args: {tool_call.args}")
+                        args = tool_call.args
+                        result = tools.multiply_numbers(**args)
+
+                        function_response_part = types.Part.from_function_response(
+                            name=tool_call.name,
+                            response={"result": result},
+                        )
+                        contents.append(types.Content(role="model", parts=[types.Part(function_call=tool_call)]))
+                        contents.append(types.Content(role="user", parts=[function_response_part]))
+
                     case _:
                         raise ValueError(f"Unknown tool called: {tool_call.name}")
 
