@@ -59,7 +59,7 @@ class MyBot(ActivityHandler):
 
 
 
-        await turn_context.send_activity(f"Chat said '{ llm_reply }'")
+        await turn_context.send_activity(llm_reply)
 
     async def on_members_added_activity(
         self,

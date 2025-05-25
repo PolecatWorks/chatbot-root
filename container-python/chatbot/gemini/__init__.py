@@ -3,6 +3,24 @@ from aiohttp import web
 from .config import GeminiConfig
 from chatbot import keys
 from google.genai import types
+from . import tools
+import logging
+from dataclasses import dataclass
+
+# Set up logging
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class TokenUsage:
+    """Dataclass to hold token usage information."""
+    name: str
+    input_tokens: int = 0
+    output_tokens: int = 0
+    total_tokens: int = 0
+
+
+
 
 class Gemini:
     """
@@ -22,21 +40,110 @@ class Gemini:
         self.client = genai.Client(api_key = config.gcp_llm_key.get_secret_value())
 
 
+
+        self.tool_config = types.GenerateContentConfig(
+            system_instruction=self.config.system_instruction,
+            temperature=self.config.temperature,
+            max_output_tokens=self.config.max_output_tokens,
+            tools=[
+                types.Tool(function_declarations=[tools.add_numbers_tool_definition])
+            ],
+        )
+
+
+
+
+
+
     def chat(self, prompt: str) -> str:
+        """Make a chat request to the Gemini model with the provided prompt.
+        This method sends a prompt to the Gemini model and processes the response.
+        It handles tool calls made by the model, executes the corresponding tool,
+        and returns the final response from the model.
+
+        Following this refere: https://ai.google.dev/gemini-api/docs/function-calling?example=meeting
+
+        Args:
+            prompt (str): Prompt from the user
+
+        Raises:
+            ValueError: When request to call an unknown tool
+
+        Returns:
+            str: text response for the bot
+        """
         # Placeholder for actual chat logic
+
+
+        contents = [
+            types.Content(role="user", parts=[types.Part(text=prompt)]),
+        ]
 
         response = self.client.models.generate_content(
             model=self.config.model,
-            config=types.GenerateContentConfig(
-                system_instruction=self.config.system_instruction,
-                temperature=self.config.temperature,
-                max_output_tokens=self.config.max_output_tokens,
-            ),
-            contents=[prompt]
+            config=self.tool_config,
+            contents=contents,
         )
-        print(response)
+        print(f'FIRST {response}')
 
-        return f"Response from {self.config.model} for prompt: {response.text}"
+
+        token_usage = []
+
+        token_usage.append(
+            TokenUsage(
+                name="initial_prompt",
+                input_tokens=response.usage_metadata.prompt_token_count,
+                output_tokens=response.usage_metadata.candidates_token_count,
+                total_tokens=response.usage_metadata.total_token_count
+            ))
+
+        while response.candidates[0].content.parts[0].function_call is not None:
+
+            tool_call = response.candidates[0].content.parts[0].function_call
+
+            if tool_call:
+                match tool_call.name:
+                    case "add_numbers":
+                        # Call the add_numbers tool with the provided arguments
+                        logger.info(f"Calling tool: {tool_call.name} with args: {tool_call.args}")
+                        args = tool_call.args
+                        result = tools.add_numbers(**args)
+
+                        function_response_part = types.Part.from_function_response(
+                            name=tool_call.name,
+                            response={"result": result},
+                        )
+                        contents.append(types.Content(role="model", parts=[types.Part(function_call=tool_call)])) # Append the model's function call message
+                        contents.append(types.Content(role="user", parts=[function_response_part])) # Append the function response
+
+
+                        # return f"add_numbers result: {result}"
+                    case _:
+                        raise ValueError(f"Unknown tool called: {tool_call.name}")
+
+            response = self.client.models.generate_content(
+                model=self.config.model,
+                config=self.tool_config,
+                contents=contents,
+            )
+
+            token_usage.append(
+                TokenUsage(
+                    name=tool_call.name,
+                    input_tokens=response.usage_metadata.prompt_token_count,
+                    output_tokens=response.usage_metadata.candidates_token_count,
+                    total_tokens=response.usage_metadata.total_token_count
+                ))
+
+
+            logger.debug(f'TOOL {tool_call.name}: {response}')
+
+
+        # total_tokens =
+        logger.debug(f'FINAL {response}')
+        logger.debug(f'Cost: {token_usage}')
+
+        return response.text
 
 
 def gemini_app_create(app: web.Application, config: GeminiConfig):
