@@ -146,6 +146,8 @@ ngrok-python-dev:
 	ngrok http --host-header=rewrite --url=informally-large-terrier.ngrok-free.app 8000
 ngrok-python:
 	ngrok http --host-header=rewrite --url=informally-large-terrier.ngrok-free.app 8080
+ngrok-k8s:
+	ngrok http --host-header=rewrite --url=informally-large-terrier.ngrok-free.app http://chatbot.k8s
 ngrok-mgt:
 	open http://127.0.0.1:4040/inspect/http
 
