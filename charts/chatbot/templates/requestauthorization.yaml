@@ -1,3 +1,4 @@
+{{- if .Values.devsecops.RequestAuthentication.jwtRules }}
 ---
 apiVersion: "security.istio.io/v1beta1"
 kind: RequestAuthentication
@@ -13,3 +14,4 @@ spec:
   #   - mtls: {}
   jwtRules:
   {{-  tpl (toYaml .Values.devsecops.RequestAuthentication.jwtRules) . | nindent 4 }}
+{{- end }}
