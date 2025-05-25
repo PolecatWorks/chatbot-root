@@ -2,12 +2,12 @@
 apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
-  name: app
+  name: chatbot-app
 spec:
-  releaseName: app
+  releaseName: chatbot-app
   chart:
     spec:
-      chart: helm-charts/chatbot-root
+      chart: helm-charts/chatbot
       version: 0.0.0
       sourceRef:
         kind: HelmRepository
