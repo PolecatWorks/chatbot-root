@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Callable, Dict
 from chatbot.gemini.tools.custom import delete_record_by_id, search_records_by_name
 from google import genai
 from aiohttp import web
@@ -43,18 +43,15 @@ class Gemini:
     def __init__(self,  config: GeminiConfig):
         self.config = config
 
-        # print(f"Initializing Gemini client with apikey: {config.gcp_llm_key.get_secret_value()[:4]}****")
         self.client = genai.Client(api_key = config.gcp_llm_key.get_secret_value())
+
+        self.function_registry = tools.FunctionRegistry(self.client)
 
         # google_search_tool = types.Tool(
         #     google_search = types.GoogleSearch()
         # )
-
-
-        calc_tools = tools.register_tools(self.client,[tools.multiply_numbers, tools.sum_numbers])
-        # calc_tools = [types.FunctionDeclaration.from_callable(callable=tool, client=self.client) for tool in [tools.multiply_numbers, tools.sum_numbers]]
-        # for tool in calc_tools:
-        #     logger.debug(f'Tool: {tool.name}')
+        self.function_registry.register(tools.sum_numbers, tools.multiply_numbers)
+        self.function_registry.register(tools.search_records_by_name, tools.delete_record_by_id)
 
 
         self.tool_config = types.GenerateContentConfig(
@@ -73,17 +70,15 @@ class Gemini:
                 #     tools.multiply_numbers, # Use the function directly benefiting from function descriptors in comments
                 #     tools.sum_numbers,
                 # ]},
-                types.Tool(function_declarations=tools.register_tools(self.client,[search_records_by_name, delete_record_by_id])), # Use the function declarations
-                types.Tool(function_declarations=calc_tools),
+                types.Tool(function_declarations=self.function_registry.tool_definitions()), # Use the function declarations from the registry
+                # types.Tool(function_declarations=tools.register_tools(self.client,[search_records_by_name, delete_record_by_id])), # Use the function declarations
+                # types.Tool(function_declarations=calc_tools),
                 # { 'function_declarations': [tools.multiply_numbers, tools.sum_numbers]},
                 # tools.multiply_numbers, tools.sum_numbers,
             ],
         )
 
         self.conversationContent: Dict[str, types.Content] = {}
-
-
-
 
 
 
@@ -146,7 +141,7 @@ class Gemini:
             contents.append(
                 types.Content(
                     role="model",
-                    parts=await tools.perform_tool_actions(response.candidates[0].content.parts)
+                    parts = await self.function_registry.perform_tool_actions(response.candidates[0].content.parts)
                 )
             )
 
