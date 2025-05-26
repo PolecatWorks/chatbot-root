@@ -55,7 +55,9 @@ class MyBot(ActivityHandler):
 
     async def on_message_activity(self, turn_context: TurnContext):
 
-        llm_reply = self.app[keys.gemini].chat(turn_context.activity.text)
+
+
+        llm_reply = await self.app[keys.gemini].chat(turn_context.activity.conversation, turn_context.activity.text)
 
 
 
