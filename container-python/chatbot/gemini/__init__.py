@@ -43,6 +43,13 @@ class Gemini:
             google_search = types.GoogleSearch()
         )
 
+
+
+        calc_tools = [types.FunctionDeclaration.from_callable(callable=tool, client=self.client) for tool in [tools.multiply_numbers, tools.sum_numbers]]
+        for tool in calc_tools:
+            logger.debug(f'Tool: {tool.name}')
+
+
         self.tool_config = types.GenerateContentConfig(
             system_instruction=self.config.system_instruction,
             temperature=self.config.temperature,
@@ -56,7 +63,9 @@ class Gemini:
                 #     tools.multiply_numbers, # Use the function directly benefiting from function descriptors in comments
                 #     tools.sum_numbers,
                 # ]},
-                tools.multiply_numbers, tools.sum_numbers,
+                types.Tool(function_declarations=calc_tools),
+                # { 'function_declarations': [tools.multiply_numbers, tools.sum_numbers]},
+                # tools.multiply_numbers, tools.sum_numbers,
             ],
         )
 
