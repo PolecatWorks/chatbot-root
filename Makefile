@@ -73,23 +73,23 @@ terraform-destroy:
 
 python-venv:
 	@echo Creating python venv
-	cd container-python && \
 	python3 -m venv venv && \
 	venv/bin/pip install --upgrade pip && \
 	venv/bin/pip install poetry && \
+	cd container-python && \
 	venv/bin/poetry install --with dev && \
 	venv/bin/pip install -e .[dev]
 
 python-run:
 	@echo Running python app
 	cd container-python && \
-	venv/bin/chatbot start --secrets tests/test_data/secrets --config tests/test_data/config.yaml
+	${BASE_DIR}/venv/bin/chatbot start --secrets tests/test_data/secrets --config tests/test_data/config.yaml
 
 
 python-dev:
 	@echo Dev run python app
 	cd container-python && \
-	venv/bin/adev runserver
+	${BASE_DIR}venv/bin/adev runserver
 
 
 python-docker:
