@@ -1,36 +1,27 @@
 from google import genai
-
-def add_numbers(num1: float, num2: float) -> float:
-    """Adds two numbers together.
-
-    Args:
-        num1: The first number.
-        num2: The second number.
-
-    Returns:
-        The sum of the two numbers.
-    """
-    return num1 + num2
+from google.genai import types
 
 
-add_numbers_tool_definition = {
-    "name": "add_numbers",
-    "description": "Adds two numbers together.",
-    "parameters": {
-        "type": "object",
-        "properties": {
-            "num1": {
-                "type": "number",
-                "description": "The first number.",
-            },
-            "num2": {
-                "type": "number",
-                "description": "The second number.",
-            },
-        },
-        "required": ["num1", "num2"],
-    },
-}
+# sum_numbers_tool_definition = \
+#         types.FunctionDeclaration(
+#             name="sum_numbers",
+#             description="Sums an array of numbers.",
+#             parameters=types.Schema(
+#                 type="object",
+#                 properties={
+#                     "numbers": types.Schema(
+#                         type="array",
+#                         items=types.Schema(type="number"),
+#                         description="A list of numbers to sum."
+#                     )
+#                 },
+#                 required=["numbers"]
+#             )
+#         )
+
+
+
+
 
 
 def sum_numbers(numbers: list[float]) -> float:
@@ -45,21 +36,6 @@ def sum_numbers(numbers: list[float]) -> float:
     return sum(numbers)
 
 
-sum_numbers_tool_definition = {
-    "name": "sum_numbers",
-    "description": "Sums an array of numbers.",
-    "parameters": {
-        "type": "object",
-        "properties": {
-            "numbers": {
-                "type": "array",
-                "items": {"type": "number"},
-                "description": "A list of numbers to sum.",
-            },
-        },
-        "required": ["numbers"],
-    },
-}
 
 
 def multiply_numbers(numbers: list[float]) -> float:

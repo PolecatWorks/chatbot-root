@@ -39,7 +39,9 @@ class Gemini:
         # print(f"Initializing Gemini client with apikey: {config.gcp_llm_key.get_secret_value()[:4]}****")
         self.client = genai.Client(api_key = config.gcp_llm_key.get_secret_value())
 
-
+        google_search_tool = types.Tool(
+            google_search = types.GoogleSearch()
+        )
 
         self.tool_config = types.GenerateContentConfig(
             system_instruction=self.config.system_instruction,
@@ -48,12 +50,13 @@ class Gemini:
             automatic_function_calling= {"disable": True}, # Disable automatic function calling so we can control it better
             # tool_config= {"function_calling_config": {"mode": "any"}},  # This did not work and resulted in large number of Genai calls
             tools=[
-                # types.Tool(function_declarations=[tools.add_numbers_tool_definition, tools.sum_numbers_tool_definition]),
-                # types.Tool(function_declarations=[tools.multiply_numbers]),
-                tools.multiply_numbers, # Use the function directly benefiting from function descriptors in comments
-                tools.sum_numbers,
-                # types.Tool(function_declarations=[tools.add_numbers_tool_definition]),
-                # types.Tool(function_declarations=[tools.sum_numbers_tool_definition]),
+                # types.Tool(code_execution=types.ToolCodeExecution),
+                # google_search_tool, # NOT WORKING
+                # { "function_declaration": [
+                #     tools.multiply_numbers, # Use the function directly benefiting from function descriptors in comments
+                #     tools.sum_numbers,
+                # ]},
+                tools.multiply_numbers, tools.sum_numbers,
             ],
         )
 
