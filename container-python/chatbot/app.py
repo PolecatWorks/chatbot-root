@@ -26,7 +26,6 @@ SETTINGS = BotFrameworkAdapterSettings(CONFIG.APP_ID, CONFIG.APP_PASSWORD)
 ADAPTER = BotFrameworkAdapter(SETTINGS)
 
 
-
 ADAPTER.on_turn_error = on_error
 
 # Create the Bot

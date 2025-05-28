@@ -1,4 +1,3 @@
-
 from aiohttp import web
 from aiohttp.web import Response, json_response, Request
 from chatbot.service.state import Events
@@ -10,8 +9,6 @@ from http import HTTPStatus
 
 # Set up logging
 logger = logging.getLogger(__name__)
-
-
 
 
 class MessageView(web.View):
@@ -33,10 +30,9 @@ class MessageView(web.View):
             "Access-Control-Max-Age": "5",  # Cache preflight response for 1 minute
         }
 
-        reply =  json_response(status=HTTPStatus.OK, headers=headers)
+        reply = json_response(status=HTTPStatus.OK, headers=headers)
         print(f"Reply: {reply}")
         return reply
-
 
     async def post(self) -> Response:
 
@@ -50,12 +46,14 @@ class MessageView(web.View):
             return Response(status=415)
 
         activity = Activity().deserialize(body)
-        auth_header = req.headers["Authorization"] if "Authorization" in req.headers else ""
+        auth_header = (
+            req.headers["Authorization"] if "Authorization" in req.headers else ""
+        )
         logger.debug(f"Activity: {activity}")
 
-
-
-        response = await req.app[keys.botadapter].process_activity(activity, auth_header, req.app[keys.bot].on_turn)
+        response = await req.app[keys.botadapter].process_activity(
+            activity, auth_header, req.app[keys.bot].on_turn
+        )
         logger.debug(f"Response: {response}")
         if response:
             return json_response(data=response.body, status=response.status)

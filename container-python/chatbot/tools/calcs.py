@@ -1,4 +1,3 @@
-
 import logging
 
 logger = logging.getLogger(__name__)
@@ -22,10 +21,6 @@ logger = logging.getLogger(__name__)
 #         )
 
 
-
-
-
-
 def sum_numbers(numbers: list[float]) -> float:
     """Sums an array of numbers.
 
@@ -36,8 +31,6 @@ def sum_numbers(numbers: list[float]) -> float:
         The sum of the numbers.
     """
     return sum(numbers)
-
-
 
 
 def multiply_numbers(numbers: list[float]) -> float:
@@ -53,8 +46,6 @@ def multiply_numbers(numbers: list[float]) -> float:
     for num in numbers:
         result *= num
     return result
-
-
 
 
 # def call_external_api(endpoint: str, method: str = "GET", payload: dict = None) -> dict:

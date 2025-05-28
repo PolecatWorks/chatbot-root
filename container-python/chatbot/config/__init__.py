@@ -13,7 +13,6 @@ from chatbot.config.gemini import GeminiConfig, GeminiPart
 import os
 
 
-
 class BotConfig(BaseModel):
     """
     Configuration for the bot
@@ -31,7 +30,6 @@ class BotConfig(BaseModel):
         # default=DefaultConfig.APP_PASSWORD,
         description="Microsoft App Password",
     )
-
 
 
 # TODO: Look here in future: https://github.com/pydantic/pydantic/discussions/2928#discussioncomment-4744841
@@ -55,7 +53,6 @@ class EventConfig(BaseModel):
     )
     chunkDuration: timedelta = Field(description="Duration of events")
     checkTime: timedelta = Field(description="Time between checking for new events")
-
 
 
 class MyAiConfig(BaseModel):

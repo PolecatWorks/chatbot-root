@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class TokenUsage:
     """Dataclass to hold token usage information."""
+
     name: str
     input_tokens: int = 0
     output_tokens: int = 0
@@ -24,8 +25,8 @@ class TokenUsage:
 @dataclass
 class Conversation:
     """Dataclass to hold conversation information."""
-    id: str
 
+    id: str
 
 
 class MyAI:
@@ -39,13 +40,15 @@ class MyAI:
     Attributes:
         config (GeminiConfig): Configuration for the Gemini client
     """
-    def __init__(self,  config: MyAiConfig, client, function_registry: toolutils.FunctionRegistry):
+
+    def __init__(
+        self, config: MyAiConfig, client, function_registry: toolutils.FunctionRegistry
+    ):
         self.config = config
         self.client = client
         self.function_registry = function_registry
 
         # self.client = genai.Client(api_key = config.gcp_llm_key.get_secret_value())
-
 
         # google_search_tool = types.Tool(
         #     google_search = types.GoogleSearch()
@@ -53,12 +56,13 @@ class MyAI:
         # self.function_registry.register(tools.sum_numbers, tools.multiply_numbers)
         # self.function_registry.register(tools.search_records_by_name, tools.delete_record_by_id)
 
-
         self.tool_config = types.GenerateContentConfig(
             system_instruction=self.config.system_instruction,
             temperature=self.config.temperature,
             max_output_tokens=self.config.max_output_tokens,
-            automatic_function_calling= {"disable": True}, # Disable automatic function calling so we can control it better
+            automatic_function_calling={
+                "disable": True
+            },  # Disable automatic function calling so we can control it better
             # tool_config= {"function_calling_config": {"mode": "any"}},  # This did not work and resulted in large number of Genai calls
             tools=[
                 # types.Tool(code_execution=types.ToolCodeExecution), # cannot be used with tools or search
@@ -70,7 +74,9 @@ class MyAI:
                 #     tools.multiply_numbers, # Use the function directly benefiting from function descriptors in comments
                 #     tools.sum_numbers,
                 # ]},
-                types.Tool(function_declarations=function_registry.tool_definitions()), # Use the function declarations from the registry
+                types.Tool(
+                    function_declarations=function_registry.tool_definitions()
+                ),  # Use the function declarations from the registry
                 # types.Tool(function_declarations=tools.register_tools(self.client,[search_records_by_name, delete_record_by_id])), # Use the function declarations
                 # types.Tool(function_declarations=calc_tools),
                 # { 'function_declarations': [tools.multiply_numbers, tools.sum_numbers]},
@@ -87,7 +93,7 @@ class MyAI:
         # Update the tool configuration with the new function declarations
         self.tool_config.tools.append(functions)
 
-        logger.debug(f'Registered tools: {[func.__name__ for func in functions]}')
+        logger.debug(f"Registered tools: {[func.__name__ for func in functions]}")
 
     async def chat(self, conversation: Conversation, prompt: str) -> str:
         """Make a chat request to the Gemini model with the provided prompt.
@@ -113,15 +119,11 @@ class MyAI:
             self.conversationContent[conversation.id] = []
             contents = self.conversationContent[conversation.id]
 
-
         # USER
         # MODEL-RESPONSE
         # USER-FUNCTION-CALL OR BASIC RESPONSE
         #   IF was FUNCITON then provide function response
         # IF was not function then yield response to user
-
-
-
 
         contents.append(types.Content(role="user", parts=[types.Part(text=prompt)]))
 
@@ -130,17 +132,13 @@ class MyAI:
             config=self.tool_config,
             contents=contents,
         )
-        print(f'FIRST {response}')
+        print(f"FIRST {response}")
 
         # Add the LLM's reply to the contents array
         if response.candidates and response.candidates[0].content.parts:
             contents.append(
-                types.Content(
-                    role="model",
-                    parts=response.candidates[0].content.parts
-                )
+                types.Content(role="model", parts=response.candidates[0].content.parts)
             )
-
 
         while response.candidates[0].content.parts[0].function_call is not None:
             # Perform the tool calls and apply the results to the contents
@@ -148,7 +146,9 @@ class MyAI:
             contents.append(
                 types.Content(
                     role="model",
-                    parts = await self.function_registry.perform_tool_actions(response.candidates[0].content.parts)
+                    parts=await self.function_registry.perform_tool_actions(
+                        response.candidates[0].content.parts
+                    ),
                 )
             )
 
@@ -163,13 +163,11 @@ class MyAI:
             if response.candidates and response.candidates[0].content.parts:
                 contents.append(
                     types.Content(
-                        role="model",
-                        parts=response.candidates[0].content.parts
+                        role="model", parts=response.candidates[0].content.parts
                     )
                 )
 
-
         # total_tokens =
-        logger.debug(f'FINAL {response}')
+        logger.debug(f"FINAL {response}")
 
         return response.text

@@ -16,7 +16,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-
 # Catch-all for errors.
 async def on_error(context: TurnContext, error: Exception):
     # This check writes out errors to console log .vs. app insights.
@@ -45,7 +44,6 @@ async def on_error(context: TurnContext, error: Exception):
         await context.send_activity(trace_activity)
 
 
-
 class MyBot(ActivityHandler):
     # See https://aka.ms/about-bot-activity-message to learn more about the message and other activity types.
 
@@ -53,18 +51,16 @@ class MyBot(ActivityHandler):
         super().__init__()
         self.app = app
 
-
     async def on_message_activity(self, turn_context: TurnContext):
 
-        llm_reply = await self.app[keys.myai].chat(turn_context.activity.conversation, turn_context.activity.text)
+        llm_reply = await self.app[keys.myai].chat(
+            turn_context.activity.conversation, turn_context.activity.text
+        )
 
         await turn_context.send_activity(llm_reply)
 
-
     async def on_members_added_activity(
-        self,
-        members_added: ChannelAccount,
-        turn_context: TurnContext
+        self, members_added: ChannelAccount, turn_context: TurnContext
     ):
         for member_added in members_added:
             if member_added.id != turn_context.activity.recipient.id:

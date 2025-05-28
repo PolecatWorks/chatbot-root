@@ -6,8 +6,6 @@ logger = logging.getLogger(__name__)
 import requests
 
 
-
-
 def google_search(query, api_key, cse_id, num=5):
     """
     Search Google using the Custom Search JSON API.
@@ -33,12 +31,15 @@ def google_search(query, api_key, cse_id, num=5):
     results = []
     data = response.json()
     for item in data.get("items", []):
-        results.append({
-            "title": item.get("title"),
-            "link": item.get("link"),
-            "snippet": item.get("snippet"),
-        })
+        results.append(
+            {
+                "title": item.get("title"),
+                "link": item.get("link"),
+                "snippet": item.get("snippet"),
+            }
+        )
     return results
+
 
 # Example usage:
 # api_key = "YOUR_GOOGLE_API_KEY"

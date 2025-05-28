@@ -13,9 +13,11 @@ from aiohttp import web
 from datetime import datetime, timezone
 
 
-
-from botbuilder.core import  BotFrameworkAdapterSettings, BotFrameworkAdapter, TurnContext
-
+from botbuilder.core import (
+    BotFrameworkAdapterSettings,
+    BotFrameworkAdapter,
+    TurnContext,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -48,9 +50,6 @@ async def service_coroutine_cleanup(app: web.Application):
     logger.info("Service: coroutine cleanup")
 
 
-
-
-
 def service_app_create(app: web.Application, config: ServiceConfig) -> web.Application:
     """
     Create the service with the given configuration file
@@ -63,23 +62,20 @@ def service_app_create(app: web.Application, config: ServiceConfig) -> web.Appli
 
     app.add_routes([web.view(f"/{config.webservice.prefix}/chunks", ChunkView)])
 
-
     # Add the bot settings and adapter to the app
-    app[keys.botsettings] = BotFrameworkAdapterSettings(config.bot.app_id, config.bot.app_password.get_secret_value())
+    app[keys.botsettings] = BotFrameworkAdapterSettings(
+        config.bot.app_id, config.bot.app_password.get_secret_value()
+    )
     app[keys.botadapter] = BotFrameworkAdapter(app[keys.botsettings])
 
     app[keys.botadapter].on_turn_error = on_error
 
     app[keys.bot] = MyBot(app)
 
-
-
-
     app.add_routes([web.view(config.bot.api_path, MessageView)])
     logger.info(
         f"Bot: {app[keys.config].webservice.url.host}:{app[keys.config].webservice.url.port}{app[keys.config].bot.api_path}"
     )
-
 
     app[keys.webservice] = app
 

@@ -1,6 +1,3 @@
-
-
-
 from dataclasses import dataclass
 from typing import List, Dict, Callable, Any
 from chatbot.config.tool import ToolBoxConfig
@@ -15,18 +12,21 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ToolDeclaration:
     """Dataclass to hold function declaration information."""
+
     name: str
     definition: types.FunctionDeclaration
     callable: Callable
 
     @classmethod
-    def from_callable(cls, client: genai.Client, callable: Callable) -> 'ToolDeclaration':
+    def from_callable(
+        cls, client: genai.Client, callable: Callable
+    ) -> "ToolDeclaration":
         """Creates a FunctionDeclaration from a callable."""
-        tool_definition = types.FunctionDeclaration.from_callable(callable=callable, client=client)
+        tool_definition = types.FunctionDeclaration.from_callable(
+            callable=callable, client=client
+        )
         return cls(
-            name=tool_definition.name,
-            definition=tool_definition,
-            callable=callable
+            name=tool_definition.name, definition=tool_definition, callable=callable
         )
 
 
@@ -36,7 +36,6 @@ class FunctionRegistry:
         self.registry: Dict[str, ToolDeclaration] = {}
         self.toolboxConfig = toolboxConfig
 
-
     def register(self, *functions: List[Callable]):
         """Registers the tools with the Gemini client."""
 
@@ -44,21 +43,23 @@ class FunctionRegistry:
             if not callable(function):
                 raise ValueError(f"Function {function} is not callable.")
 
-            tool_declaration = ToolDeclaration.from_callable(client=self.client, callable=function)
+            tool_declaration = ToolDeclaration.from_callable(
+                client=self.client, callable=function
+            )
 
             # tool_definition = types.FunctionDeclaration.from_callable(callable=function, client=self.client)
             self.registry[tool_declaration.name] = tool_declaration
 
-            logger.debug(f'Function registered as {tool_declaration.name}')
-
+            logger.debug(f"Function registered as {tool_declaration.name}")
 
     def tool_definitions(self) -> List[ToolDeclaration]:
         return [tool.definition for tool in self.registry.values()]
 
-
-    async def perform_tool_actions(self, parts: List[types.Part]) -> List[types.Content]:
+    async def perform_tool_actions(
+        self, parts: List[types.Part]
+    ) -> List[types.Content]:
         """Performs actions using the registered tools.
-            Reply back with an array to match what was called
+        Reply back with an array to match what was called
         """
         semaphore = asyncio.Semaphore(self.toolboxConfig.max_concurrent)
 
@@ -69,14 +70,12 @@ class FunctionRegistry:
         tasks = [sem_task(part) for part in parts]
         return await asyncio.gather(*tasks)
 
-
     async def perform_tool_action(self, part: types.Part) -> types.Content:
         """Performs an action using a single tool call part."""
 
         if not part.function_call:
             logger.error("No function call found in the part.")
             return types.Part(text="No function call found.")
-
 
         tool_call = part.function_call
         logger.info(f"Calling tool: {tool_call.name} with args: {tool_call.args}")

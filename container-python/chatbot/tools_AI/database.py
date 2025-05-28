@@ -1,5 +1,6 @@
 """Custom tools for database operations."""
 
+
 async def search_records_by_name(name: str) -> list[dict]:
     """Search records by name.
 
@@ -11,6 +12,7 @@ async def search_records_by_name(name: str) -> list[dict]:
     """
     # TODO: Implement actual database search
     return [{"id": 1, "name": name}]
+
 
 async def delete_record_by_id(id: int) -> bool:
     """Delete a record by ID.

@@ -1,5 +1,6 @@
 """Calculation tools for the chatbot."""
 
+
 def sum_numbers(numbers: list[float]) -> float:
     """Sums an array of numbers.
 
@@ -10,6 +11,7 @@ def sum_numbers(numbers: list[float]) -> float:
         The sum of the numbers.
     """
     return sum(numbers)
+
 
 def multiply_numbers(numbers: list[float]) -> float:
     """Multiplies an array of numbers.

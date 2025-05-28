@@ -16,7 +16,7 @@ class Events:
     # If time is after lastTime then subtract one from chunkCount (if greater than 0). Then schedule for
     chunkCount: int
     # TODO: Consider to use set_function for Gauge as more direct method of updating
-    chunkGauge = Gauge('chunk_gauge', 'Count of chunks remaining')
+    chunkGauge = Gauge("chunk_gauge", "Count of chunks remaining")
 
     def updateChunk(self, time: datetime) -> int:
         if self.lastTime < time:
@@ -33,7 +33,6 @@ class Events:
                 return self.config.checkTime.total_seconds()
         else:
             return self.config.checkTime.total_seconds()
-
 
     def addChunks(self, chunks: int) -> int:
         self.chunkCount += chunks

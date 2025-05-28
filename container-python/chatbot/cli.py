@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
 # chatbot Copyright (C) 2024 Ben Greene
-"""CLI initiated python app
-"""
+"""CLI initiated python app"""
 
 import click
 import sys
@@ -83,13 +82,11 @@ def start(ctx, config, secrets):
 
     configObj: ServiceConfig = ServiceConfig.from_yaml(config.name, secrets)
 
-
     # Load logging configuration from YAML file
     logging.config.dictConfig(configObj.logging)
 
     logger = logging.getLogger(__name__)
     print(to_yaml_str(configObj, indent=2))
-
 
     service_start(configObj)
 
