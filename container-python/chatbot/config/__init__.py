@@ -1,3 +1,4 @@
+from .tool import ToolBoxConfig, ToolConfig
 from pydantic import Field, BaseModel
 from chatbot.hams.config import HamsConfig
 from pydantic import Field, BaseModel, SecretStr
@@ -77,6 +78,9 @@ class MyAiConfig(BaseModel):
 
     temperature: float = Field(
         description="Temperature for the bot's response generation, controlling randomness",
+    )
+    toolbox: ToolBoxConfig = Field(
+        description="Default configuration for tool execution, including limits and enabled status",
     )
 
 

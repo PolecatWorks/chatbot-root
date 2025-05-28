@@ -181,7 +181,7 @@ def gemini_app_create(app: web.Application, config: ServiceConfig):
 
     client = genai.Client(api_key = config.gemini.gcp_llm_key.get_secret_value())
 
-    function_registry = toolutils.FunctionRegistry(client)
+    function_registry = toolutils.FunctionRegistry(client, config.myai.toolbox)
 
     function_registry.register(calcs.sum_numbers, calcs.multiply_numbers)
     function_registry.register(customer.search_records_by_name, customer.delete_record_by_id)

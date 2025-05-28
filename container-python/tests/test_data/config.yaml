@@ -25,7 +25,6 @@ logging:
 webservice:
   url: http://0.0.0.0:8080
   prefix: pie/v0
-# bot: {}
 bot:
   app_id: "" # Disable bot authentication for dev
   app_password: "" # Disable bot authentication for dev
@@ -35,6 +34,9 @@ myai:
     - text: "You are a helpful assistant."
   max_output_tokens: 500
   temperature: 0.1
+  toolbox:
+    max_concurrent: 10
+    tools: {}
 hams:
   url: http://localhost:8079
   prefix: hams

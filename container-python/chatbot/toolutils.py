@@ -3,6 +3,7 @@
 
 from dataclasses import dataclass
 from typing import List, Dict, Callable, Any
+from chatbot.config.tool import ToolBoxConfig
 from google import genai
 from google.genai import types
 import logging
@@ -30,9 +31,10 @@ class ToolDeclaration:
 
 
 class FunctionRegistry:
-    def __init__(self, client: genai.Client):
+    def __init__(self, client: genai.Client, toolboxConfig: ToolBoxConfig):
         self.client = client
         self.registry: Dict[str, ToolDeclaration] = {}
+        self.toolboxConfig = toolboxConfig
 
 
     def register(self, *functions: List[Callable]):
@@ -58,8 +60,14 @@ class FunctionRegistry:
         """Performs actions using the registered tools.
             Reply back with an array to match what was called
         """
+        semaphore = asyncio.Semaphore(self.toolboxConfig.max_concurrent)
 
-        return [await self.perform_tool_action(part) for part in parts]
+        async def sem_task(part):
+            async with semaphore:
+                return await self.perform_tool_action(part)
+
+        tasks = [sem_task(part) for part in parts]
+        return await asyncio.gather(*tasks)
 
 
     async def perform_tool_action(self, part: types.Part) -> types.Content:
