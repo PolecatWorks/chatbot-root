@@ -1,16 +1,9 @@
-from typing import Any, Callable, Dict
-
-from chatbot.config import ServiceConfig
-from chatbot.config.gemini import GeminiConfig
-
-from chatbot.tools import calcs, customer
-from chatbot.myai import MyAI
+from typing import Callable, Dict
 from google import genai
 from aiohttp import web
-
-from chatbot import keys, tools, toolutils
+from ..config.gemini import GeminiConfig
+from chatbot import keys
 from google.genai import types
-
 import logging
 from dataclasses import dataclass
 
@@ -34,7 +27,7 @@ class Conversation:
 
 
 
-class GeminiNOTUSED:
+class MyAI:
     """
     Gemini client for interacting with Google Gemini LLM.
     This class initializes the Gemini client with the provided configuration
@@ -173,17 +166,9 @@ class GeminiNOTUSED:
         return response.text
 
 
-
-def gemini_app_create(app: web.Application, config: ServiceConfig):
+def gemini_app_create(app: web.Application, config: GeminiConfig):
     """
     Initialize the Gemini client and add it to the aiohttp application context.
     """
 
-    client = genai.Client(api_key = config.gemini.gcp_llm_key.get_secret_value())
-
-    function_registry = toolutils.FunctionRegistry(client)
-
-    function_registry.register(calcs.sum_numbers, calcs.multiply_numbers)
-    function_registry.register(customer.search_records_by_name, customer.delete_record_by_id)
-
-    app[keys.myai] = MyAI(config.myai, client, function_registry)
+    app[keys.myai] = MyAI(config)

@@ -3,8 +3,6 @@
 
 from dataclasses import dataclass
 from typing import List, Dict, Callable, Any
-from .calcs import sum_numbers, multiply_numbers
-from .custom import search_records_by_name, delete_record_by_id
 from google import genai
 from google.genai import types
 import logging

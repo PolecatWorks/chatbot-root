@@ -1,16 +1,10 @@
-from typing import Any, Callable, Dict
-
-from chatbot.config import ServiceConfig
-from chatbot.config.gemini import GeminiConfig
-
-from chatbot.tools import calcs, customer
-from chatbot.myai import MyAI
+from typing import Callable, Dict
+from chatbot.config import MyAiConfig, ServiceConfig
 from google import genai
 from aiohttp import web
 
-from chatbot import keys, tools, toolutils
+from chatbot import keys, toolutils
 from google.genai import types
-
 import logging
 from dataclasses import dataclass
 
@@ -34,7 +28,7 @@ class Conversation:
 
 
 
-class GeminiNOTUSED:
+class MyAI:
     """
     Gemini client for interacting with Google Gemini LLM.
     This class initializes the Gemini client with the provided configuration
@@ -45,18 +39,19 @@ class GeminiNOTUSED:
     Attributes:
         config (GeminiConfig): Configuration for the Gemini client
     """
-    def __init__(self,  config: GeminiConfig):
+    def __init__(self,  config: MyAiConfig, client, function_registry: toolutils.FunctionRegistry):
         self.config = config
+        self.client = client
+        self.function_registry = function_registry
 
-        self.client = genai.Client(api_key = config.gcp_llm_key.get_secret_value())
+        # self.client = genai.Client(api_key = config.gcp_llm_key.get_secret_value())
 
-        self.function_registry = tools.FunctionRegistry(self.client)
 
         # google_search_tool = types.Tool(
         #     google_search = types.GoogleSearch()
         # )
-        self.function_registry.register(tools.sum_numbers, tools.multiply_numbers)
-        self.function_registry.register(tools.search_records_by_name, tools.delete_record_by_id)
+        # self.function_registry.register(tools.sum_numbers, tools.multiply_numbers)
+        # self.function_registry.register(tools.search_records_by_name, tools.delete_record_by_id)
 
 
         self.tool_config = types.GenerateContentConfig(
@@ -75,7 +70,7 @@ class GeminiNOTUSED:
                 #     tools.multiply_numbers, # Use the function directly benefiting from function descriptors in comments
                 #     tools.sum_numbers,
                 # ]},
-                types.Tool(function_declarations=self.function_registry.tool_definitions()), # Use the function declarations from the registry
+                types.Tool(function_declarations=function_registry.tool_definitions()), # Use the function declarations from the registry
                 # types.Tool(function_declarations=tools.register_tools(self.client,[search_records_by_name, delete_record_by_id])), # Use the function declarations
                 # types.Tool(function_declarations=calc_tools),
                 # { 'function_declarations': [tools.multiply_numbers, tools.sum_numbers]},
@@ -85,7 +80,14 @@ class GeminiNOTUSED:
 
         self.conversationContent: Dict[str, types.Content] = {}
 
+    def register_tools(self, *functions: Callable):
+        """Registers the tools with the Gemini client."""
+        self.function_registry.register(*functions)
 
+        # Update the tool configuration with the new function declarations
+        self.tool_config.tools.append(functions)
+
+        logger.debug(f'Registered tools: {[func.__name__ for func in functions]}')
 
     async def chat(self, conversation: Conversation, prompt: str) -> str:
         """Make a chat request to the Gemini model with the provided prompt.
@@ -171,19 +173,3 @@ class GeminiNOTUSED:
         logger.debug(f'FINAL {response}')
 
         return response.text
-
-
-
-def gemini_app_create(app: web.Application, config: ServiceConfig):
-    """
-    Initialize the Gemini client and add it to the aiohttp application context.
-    """
-
-    client = genai.Client(api_key = config.gemini.gcp_llm_key.get_secret_value())
-
-    function_registry = toolutils.FunctionRegistry(client)
-
-    function_registry.register(calcs.sum_numbers, calcs.multiply_numbers)
-    function_registry.register(customer.search_records_by_name, customer.delete_record_by_id)
-
-    app[keys.myai] = MyAI(config.myai, client, function_registry)

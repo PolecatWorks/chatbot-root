@@ -25,8 +25,11 @@ logging:
 webservice:
   url: http://0.0.0.0:8080
   prefix: pie/v0
-bot: {}
-gemini:
+# bot: {}
+bot:
+  app_id: "" # Disable bot authentication for dev
+  app_password: "" # Disable bot authentication for dev
+myai:
   model: gemini-2.0-flash
   system_instruction:
     - text: "You are a helpful assistant."

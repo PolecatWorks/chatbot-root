@@ -1,6 +1,7 @@
 import asyncio
 import logging
 
+from chatbot.gemini import gemini_app_create
 from chatbot.service.state import Events
 from chatbot.hams import hams_app_create
 from chatbot.config import ServiceConfig
@@ -10,7 +11,7 @@ from chatbot.bot import MyBot, on_error
 from chatbot import keys
 from aiohttp import web
 from datetime import datetime, timezone
-from chatbot.gemini import gemini_app_create
+
 
 
 from botbuilder.core import  BotFrameworkAdapterSettings, BotFrameworkAdapter, TurnContext
@@ -93,7 +94,7 @@ def service_init(app: web.Application, config: ServiceConfig):
 
     service_app_create(app, config)
     hams_app_create(app, config.hams)
-    gemini_app_create(app, config.gemini)
+    gemini_app_create(app, config)
     return app
 
 
