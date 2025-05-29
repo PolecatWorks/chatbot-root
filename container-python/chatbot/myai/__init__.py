@@ -7,19 +7,11 @@ from chatbot import keys, toolutils
 from google.genai import types
 import logging
 from dataclasses import dataclass
+from abc import ABC, abstractmethod
 
 # Set up logging
 logger = logging.getLogger(__name__)
 
-
-@dataclass
-class TokenUsage:
-    """Dataclass to hold token usage information."""
-
-    name: str
-    input_tokens: int = 0
-    output_tokens: int = 0
-    total_tokens: int = 0
 
 
 @dataclass
@@ -29,20 +21,51 @@ class Conversation:
     id: str
 
 
+class AIClient(ABC):
+    """
+    Abstract base class for AI clients.
+    Defines the interface for interacting with an AI model.
+    """
+
+    # @abstractmethod
+    # async def generate_content() -> str:
+    #         generate_content(
+    #         model=self.config.model,
+    #         config=self.tool_config,
+    #         contents=contents,
+
+
+    @abstractmethod
+    async def chat(self, conversation: types.Content) -> types.Content:
+        """
+        Abstract method to send a prompt to the AI model and receive a response.
+
+        Args:
+            conversation (Conversation): The conversation context.
+            prompt (str): The user's prompt.
+
+        Returns:
+            str: The AI's response.
+        """
+        pass
+
+
 class MyAI:
     """
-    Gemini client for interacting with Google Gemini LLM.
-    This class initializes the Gemini client with the provided configuration
-    and provides a method to generate chat responses.
+    General Interface for interacting with LLM AI.
+    This class handles the interaction with the LLM, handles the context and
+    calls tools as needed.
 
     It is based off: https://ai.google.dev/api?lang=python
 
     Attributes:
-        config (GeminiConfig): Configuration for the Gemini client
+        config (GeminiConfig): Configuration for the AI
+        client (genai.Client): The AI client eg Gemini for making requests
+        function_registry (toolutils.FunctionRegistry): Registry for tools that can be called by the AI
     """
 
     def __init__(
-        self, config: MyAiConfig, client, function_registry: toolutils.FunctionRegistry
+        self, config: MyAiConfig, client: AIClient, function_registry: toolutils.FunctionRegistry
     ):
         self.config = config
         self.client = client
@@ -96,8 +119,8 @@ class MyAI:
         logger.debug(f"Registered tools: {[func.__name__ for func in functions]}")
 
     async def chat(self, conversation: Conversation, prompt: str) -> str:
-        """Make a chat request to the Gemini model with the provided prompt.
-        This method sends a prompt to the Gemini model and processes the response.
+        """Make a chat request to the AI model with the provided prompt.
+        This method sends a prompt to the model and processes the response.
         It handles tool calls made by the model, executes the corresponding tool,
         and returns the final response from the model.
 
@@ -119,11 +142,6 @@ class MyAI:
             self.conversationContent[conversation.id] = []
             contents = self.conversationContent[conversation.id]
 
-        # USER
-        # MODEL-RESPONSE
-        # USER-FUNCTION-CALL OR BASIC RESPONSE
-        #   IF was FUNCITON then provide function response
-        # IF was not function then yield response to user
 
         contents.append(types.Content(role="user", parts=[types.Part(text=prompt)]))
 
@@ -132,7 +150,6 @@ class MyAI:
             config=self.tool_config,
             contents=contents,
         )
-        print(f"FIRST {response}")
 
         # Add the LLM's reply to the contents array
         if response.candidates and response.candidates[0].content.parts:
@@ -167,7 +184,5 @@ class MyAI:
                     )
                 )
 
-        # total_tokens =
-        logger.debug(f"FINAL {response}")
 
         return response.text

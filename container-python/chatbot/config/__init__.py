@@ -6,7 +6,7 @@ from pydantic import HttpUrl
 from pydantic_settings import BaseSettings, YamlConfigSettingsSource, SettingsConfigDict
 from pydantic_file_secrets import FileSecretsSettingsSource
 from pathlib import Path
-from typing import Dict, Any, List, Self
+from typing import Dict, Any, List, Self, Union
 from datetime import timedelta
 from chatbot.config.gemini import GeminiConfig, GeminiPart
 
@@ -60,22 +60,10 @@ class MyAiConfig(BaseModel):
     Configuration for the MyAI bot
     """
 
-    model: str = Field(
-        # default="gemini-1.5-flash",
-        description="The model to use for the bot, e.g., 'gemini-1.5-flash'",
-    )
-
     system_instruction: List[GeminiPart] = Field(
         description="List of system instructions for the bot",
     )
 
-    max_output_tokens: int = Field(
-        description="Maximum number of output tokens for the bot's response",
-    )
-
-    temperature: float = Field(
-        description="Temperature for the bot's response generation, controlling randomness",
-    )
     toolbox: ToolBoxConfig = Field(
         description="Default configuration for tool execution, including limits and enabled status",
     )
@@ -88,7 +76,7 @@ class ServiceConfig(BaseSettings):
 
     logging: Dict[str, Any] = Field(description="Logging configuration")
     bot: BotConfig = Field(description="Bot configuration")
-    gemini: GeminiConfig = Field(description="Gemini configuration")
+    aiclient: Union[GeminiConfig] = Field(description="Gemini configuration")
     myai: MyAiConfig = Field(description="MyAI bot configuration")
 
     webservice: WebServerConfig = Field(description="Web server configuration")

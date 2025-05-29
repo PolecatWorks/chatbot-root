@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import List, Dict, Callable, Any
 from chatbot.config.tool import ToolBoxConfig
-from google import genai
+from chatbot.myai import AIClient
 from google.genai import types
 import logging
 import asyncio
@@ -19,7 +19,7 @@ class ToolDeclaration:
 
     @classmethod
     def from_callable(
-        cls, client: genai.Client, callable: Callable
+        cls, client: AIClient, callable: Callable
     ) -> "ToolDeclaration":
         """Creates a FunctionDeclaration from a callable."""
         tool_definition = types.FunctionDeclaration.from_callable(
@@ -31,7 +31,7 @@ class ToolDeclaration:
 
 
 class FunctionRegistry:
-    def __init__(self, client: genai.Client, toolboxConfig: ToolBoxConfig):
+    def __init__(self, client: AIClient, toolboxConfig: ToolBoxConfig):
         self.client = client
         self.registry: Dict[str, ToolDeclaration] = {}
         self.toolboxConfig = toolboxConfig

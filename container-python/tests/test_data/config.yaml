@@ -28,12 +28,13 @@ webservice:
 bot:
   app_id: "" # Disable bot authentication for dev
   app_password: "" # Disable bot authentication for dev
-myai:
+aiclient:
   model: gemini-2.0-flash
-  system_instruction:
-    - text: "You are a helpful assistant."
   max_output_tokens: 500
   temperature: 0.1
+myai:
+  system_instruction:
+    - text: "You are a helpful assistant."
   toolbox:
     max_concurrent: 10
     tools: {}

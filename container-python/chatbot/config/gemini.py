@@ -20,3 +20,12 @@ class GeminiConfig(BaseModel):
     gcp_llm_key: SecretStr = Field(
         description="Google Cloud Platform LLM API key",
     )
+    model: str = Field(
+        description="The model to use for the bot, e.g., 'gemini-1.5-flash'",
+    )
+    max_output_tokens: int = Field(
+        description="Maximum number of output tokens for the bot's response",
+    )
+    temperature: float = Field(
+        description="Temperature for the bot's response generation, controlling randomness",
+    )
