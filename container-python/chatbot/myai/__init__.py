@@ -57,6 +57,9 @@ def langchain_app_create(app: web.Application, config: ServiceConfig):
     #     customer.search_records_by_name, customer.delete_record_by_id
     # )
 
+
+    print(type(mytools))
+
     app[keys.myai] = MyAI(config.myai, model, mytools)
 
 

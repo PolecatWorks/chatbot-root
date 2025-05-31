@@ -2,9 +2,18 @@ from dataclasses import dataclass
 from typing import List, Dict, Callable, Any
 from chatbot.config.tool import ToolBoxConfig
 from langchain_core.messages.tool import ToolCall, ToolMessage
-
+from langchain_core.tools.structured import StructuredTool
 import logging
 import asyncio
+from pydantic_yaml import to_yaml_str
+
+import io
+from ruamel.yaml import YAML
+
+yaml = YAML()
+
+
+
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +24,7 @@ class ToolDeclaration:
 
     name: str
     definition: Any
-    callable: Callable
+    tool: StructuredTool
 
     # @classmethod
     # def from_callable(
@@ -37,7 +46,7 @@ class FunctionRegistry:
         self.toolboxConfig = toolboxConfig
 
 
-    def register_tools(self, tools: List[Callable]):
+    def register_tools(self, tools: List[StructuredTool]) -> None:
         """Registers the tools with the Gemini client."""
 
         tool_definition_dict = {
@@ -48,7 +57,8 @@ class FunctionRegistry:
             if not callable(tool):
                 raise ValueError(f"Tool {tool} is not callable.")
 
-            tool_name = tool.__name__
+
+            tool_name = tool.name
 
             if tool_name not in tool_definition_dict:
                 logger.debug(f"Cannot registering tool: {tool_name}. It is not defined in the toolbox configuration.")
@@ -56,9 +66,15 @@ class FunctionRegistry:
                     f"Tool {tool_name} is not configured"
                 )
 
+            buf = io.StringIO()
+            yaml.dump(tool.tool_call_schema.model_json_schema(), buf)
+
+
+            logger.info(f"Registering tool: {tool_name} with schema:\n{buf.getvalue()}")
+
             self.registry[tool_name] = ToolDeclaration(
                 name=tool_name,
-                callable=tool,
+                tool=tool,
                 definition=tool_definition_dict[tool_name],
             )
 
@@ -80,13 +96,9 @@ class FunctionRegistry:
         tasks = [sem_task(part) for part in parts]
         return await asyncio.gather(*tasks)
 
+
     async def perform_tool_action(self, tool_call: ToolCall) -> ToolMessage:
         """Performs an action using a single tool call part."""
-
-        # if not toolcall.name:
-        #     logger.error("No function call found in the part.")
-        #     return ToolMessage(content="Tool '{tool_name}' not found.", tool_call_id=toolcall.tool_call_id)
-
 
         logger.debug(f"Received tool call: {tool_call}")
 
@@ -99,13 +111,13 @@ class FunctionRegistry:
             logger.debug(f"Tool declaration found: {declaration}")
 
             # Call the function with its arguments
-            if asyncio.iscoroutinefunction(declaration.callable):
-                result = await declaration.callable(**tool_call['args'])
+            if asyncio.iscoroutinefunction(declaration.tool):
+                result = await declaration.tool.invoke(tool_call['args'])
             else:
-                result = declaration.callable(**tool_call['args'])
+                result = declaration.tool.invoke(tool_call['args'])
 
             return ToolMessage(
-                content=str(result),
+                content=result,
                 tool_call_id=tool_call['id'],
                 status="success",
             )

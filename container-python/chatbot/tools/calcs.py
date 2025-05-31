@@ -1,5 +1,7 @@
 import logging
 
+from langchain_core.tools import InjectedToolArg, tool
+
 logger = logging.getLogger(__name__)
 
 
@@ -20,7 +22,7 @@ logger = logging.getLogger(__name__)
 #             )
 #         )
 
-
+@tool(parse_docstring=True)
 def sum_numbers(numbers: list[float]) -> float:
     """Sums an array of numbers.
 
@@ -34,6 +36,7 @@ def sum_numbers(numbers: list[float]) -> float:
     return sum(numbers)
 
 
+@tool(parse_docstring=True)
 def multiply_numbers(numbers: list[float]) -> float:
     """Multiplies an array of numbers.
 

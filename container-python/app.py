@@ -19,8 +19,6 @@ def create_app():
     # with open("tests/test_data/config.yaml", "rb") as config_file:
     configObj: ServiceConfig = ServiceConfig.from_yaml(config_filename, secrets_dir)
 
-    print(to_yaml_str(configObj, indent=2))
-
     logging.basicConfig(level=logging.DEBUG)
     app = service_init(app, configObj)
 
