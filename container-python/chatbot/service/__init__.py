@@ -90,7 +90,7 @@ def service_app_create(app: web.Application, config: ServiceConfig) -> web.Appli
 
 def service_init(app: web.Application, config: ServiceConfig):
 
-    logger.info(f'CONFIG\n{to_yaml_str(config, indent=2)}')
+    logger.info(f"CONFIG\n{to_yaml_str(config, indent=2)}")
 
     service_app_create(app, config)
     hams_app_create(app, config.hams)

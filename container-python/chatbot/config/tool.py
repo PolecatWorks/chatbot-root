@@ -6,9 +6,7 @@ from pydantic import BaseModel, Field
 class ToolConfig(BaseModel):
     """Configuration for tool execution."""
 
-    name: str = Field(
-        description="Name of the tool, used to identify it in the system"
-    )
+    name: str = Field(description="Name of the tool, used to identify it in the system")
 
     max_instances: int = Field(
         default=5,

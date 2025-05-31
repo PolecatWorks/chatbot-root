@@ -49,7 +49,7 @@ class Gemini(AIClient):
 
     def __init__(self, config: GeminiConfig):
         self.config = config
-        self.client =  genai.Client(api_key=config.gcp_llm_key.get_secret_value())
+        self.client = genai.Client(api_key=config.gcp_llm_key.get_secret_value())
 
     async def chat(self, contents: types.Content) -> types.Content:
         """
@@ -70,7 +70,6 @@ class Gemini(AIClient):
         )
         logger.debug(f"Received response from Gemini: {response.text}")
         return response
-
 
 
 def gemini_app_create(app: web.Application, config: ServiceConfig):

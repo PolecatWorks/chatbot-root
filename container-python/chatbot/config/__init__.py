@@ -60,6 +60,7 @@ class AIPromptConfig(BaseModel):
         description="The text of the AI prompt",
     )
 
+
 class MyAiConfig(BaseModel):
     """
     Configuration for the MyAI bot
@@ -78,28 +79,26 @@ class LangchainConfig(BaseModel):
     """
     Configuration for LangChain, supporting both Azure OpenAI and GitHub-hosted models
     """
+
     # Azure OpenAI settings
     azure_openai_endpoint: HttpUrl | None = Field(
-        default=None,
-        description="Azure OpenAI endpoint for LangChain"
+        default=None, description="Azure OpenAI endpoint for LangChain"
     )
     azure_deployment: str | None = Field(
-        default=None,
-        description="Azure OpenAI deployment name for LangChain"
+        default=None, description="Azure OpenAI deployment name for LangChain"
     )
 
     # GitHub-hosted model settings
     github_model_repo: str | None = Field(
         default=None,
-        description="GitHub repository containing the model in owner/repo format"
+        description="GitHub repository containing the model in owner/repo format",
     )
     github_api_base_url: HttpUrl | None = Field(
-        default=None,
-        description="Base URL for the GitHub model API endpoint"
+        default=None, description="Base URL for the GitHub model API endpoint"
     )
     github_api_key: SecretStr | None = Field(
         default=None,
-        description="Optional API key for authenticated access to GitHub model"
+        description="Optional API key for authenticated access to GitHub model",
     )
     google_api_key: SecretStr = Field(
         description="Optional API key for authenticated access to Genai model"
@@ -110,28 +109,23 @@ class LangchainConfig(BaseModel):
         description="The model to use (e.g., 'gemini-1.5-flash-latest' or GitHub model name)"
     )
     model_provider: Literal["azure", "github", "google_genai"] = Field(
-        default="azure",
-        description="Provider for the model: 'azure' or 'github'"
+        default="azure", description="Provider for the model: 'azure' or 'github'"
     )
     temperature: float = Field(
         default=0.7,
-        description="Temperature for the model, controlling randomness in responses"
+        description="Temperature for the model, controlling randomness in responses",
     )
     context_length: int = Field(
-        default=4096,
-        description="Maximum context length for the model"
+        default=4096, description="Maximum context length for the model"
     )
     stop_sequences: List[str] = Field(
-        default_factory=list,
-        description="List of sequences that will stop generation"
+        default_factory=list, description="List of sequences that will stop generation"
     )
     timeout: int = Field(
-        default=60,
-        description="Timeout in seconds for model API calls"
+        default=60, description="Timeout in seconds for model API calls"
     )
     streaming: bool = Field(
-        default=True,
-        description="Whether to stream responses from the model"
+        default=True, description="Whether to stream responses from the model"
     )
 
     class Config:
@@ -140,10 +134,18 @@ class LangchainConfig(BaseModel):
     @validator("model_provider")
     def validate_provider_settings(cls, v, values):
         """Validate that the required settings are present for the chosen provider"""
-        if v == "azure" and not (values.get("azure_openai_endpoint") and values.get("azure_deployment")):
-            raise ValueError("Azure OpenAI settings required when model_provider is 'azure'")
-        elif v == "github" and not (values.get("github_model_repo") and values.get("github_api_base_url")):
-            raise ValueError("GitHub model settings required when model_provider is 'github'")
+        if v == "azure" and not (
+            values.get("azure_openai_endpoint") and values.get("azure_deployment")
+        ):
+            raise ValueError(
+                "Azure OpenAI settings required when model_provider is 'azure'"
+            )
+        elif v == "github" and not (
+            values.get("github_model_repo") and values.get("github_api_base_url")
+        ):
+            raise ValueError(
+                "GitHub model settings required when model_provider is 'github'"
+            )
         return v
 
 

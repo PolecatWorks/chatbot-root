@@ -14,14 +14,12 @@ from langchain_core.messages import (
     BaseMessage,
     FunctionMessage,
     ToolCall,
-    ToolMessage
+    ToolMessage,
 )
 from langchain_core.language_models import BaseChatModel
 
 # Set up logging
 logger = logging.getLogger(__name__)
-
-
 
 
 def langchain_app_create(app: web.Application, config: ServiceConfig):
@@ -34,10 +32,13 @@ def langchain_app_create(app: web.Application, config: ServiceConfig):
     model = init_chat_model(
         model=config.aiclient.model,
         model_provider=config.aiclient.model_provider,
-        google_api_key=config.aiclient.google_api_key.get_secret_value() if config.aiclient.model_provider == "google_genai" else None,
+        google_api_key=(
+            config.aiclient.google_api_key.get_secret_value()
+            if config.aiclient.model_provider == "google_genai"
+            else None
+        ),
     )
     from chatbot.tools import mytools
-
 
     # model = AzureChatOpenAI(
     #     azure_endpoint=config.aiclient.azure_openai_endpoint,
@@ -57,11 +58,9 @@ def langchain_app_create(app: web.Application, config: ServiceConfig):
     #     customer.search_records_by_name, customer.delete_record_by_id
     # )
 
-
     print(type(mytools))
 
     app[keys.myai] = MyAI(config.myai, model, mytools)
-
 
 
 @dataclass
@@ -83,7 +82,6 @@ class AIClient(ABC):
     #         model=self.config.model,
     #         config=self.tool_config,
     #         contents=contents,
-
 
     @abstractmethod
     async def chat(self, conversation: Any) -> Any:
@@ -187,7 +185,10 @@ class MyAI:
         if conversation.id in self.conversationContent:
             messages = self.conversationContent[conversation.id]
         else:
-            self.conversationContent[conversation.id] = [ SystemMessage(content=instruction.text) for instruction in self.config.system_instruction ]
+            self.conversationContent[conversation.id] = [
+                SystemMessage(content=instruction.text)
+                for instruction in self.config.system_instruction
+            ]
             messages = self.conversationContent[conversation.id]
 
         messages.append(HumanMessage(content=prompt))
@@ -209,11 +210,12 @@ class MyAI:
                 break
 
             # Perform the tool calls and apply the results to the contents
-            tool_responses = await self.function_registry.perform_tool_actions(response.tool_calls)
+            tool_responses = await self.function_registry.perform_tool_actions(
+                response.tool_calls
+            )
             logger.debug(f"Function responses: {tool_responses}")
 
             messages.extend(tool_responses)
-
 
         logger.debug(f"Final response from LLM: {response}")
 

@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 #             )
 #         )
 
+
 @tool(parse_docstring=True)
 def sum_numbers(numbers: list[float]) -> float:
     """Sums an array of numbers.
