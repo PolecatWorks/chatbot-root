@@ -10,7 +10,7 @@ REPO ?= dockerreg.k8s:5000/polecatworks
 DOCKER=docker
 
 BASE_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
-
+VENV := ${BASE_DIR}venv
 
 .ONESHELL:
 docker-build:
@@ -89,7 +89,7 @@ python-run:
 python-dev:
 	@echo Dev run python app
 	cd container-python && \
-	${BASE_DIR}venv/bin/adev runserver
+	${VENV}/bin/adev runserver
 
 
 python-docker:

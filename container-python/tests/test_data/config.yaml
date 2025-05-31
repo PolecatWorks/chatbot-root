@@ -30,14 +30,29 @@ bot:
   app_password: "" # Disable bot authentication for dev
 aiclient:
   model: gemini-2.0-flash
-  max_output_tokens: 500
-  temperature: 0.1
+  model_provider: google_genai
+  # model_provider: github
+  # github_model_repo: openai/gpt-4.1
+  # github_api_base_url: https://models.github.ai/inference
+  # model: model-name
+
+  temperature: 1.0
+  # max_tokens: 500
+  context_length: 4096
+  stop_sequences: []
+  timeout: 60
 myai:
   system_instruction:
     - text: "You are a helpful assistant."
   toolbox:
     max_concurrent: 10
-    tools: {}
+    tools:
+    - name: sum_numbers
+      max_instances: 10
+    - name: multiply_numbers
+      max_instances: 10
+
+
 hams:
   url: http://localhost:8079
   prefix: hams

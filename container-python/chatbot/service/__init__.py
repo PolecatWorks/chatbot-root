@@ -1,8 +1,8 @@
 import asyncio
 import logging
 
-from chatbot.config.gemini import GeminiConfig
-from chatbot.gemini import gemini_app_create
+
+from chatbot.myai import langchain_app_create
 from chatbot.service.state import Events
 from chatbot.hams import hams_app_create
 from chatbot.config import ServiceConfig
@@ -92,11 +92,7 @@ def service_init(app: web.Application, config: ServiceConfig):
     service_app_create(app, config)
     hams_app_create(app, config.hams)
 
-    if isinstance(config.aiclient, GeminiConfig):
-        gemini_app_create(app, config)
-    else:
-        logger.error(f"Unknown AI client type: {config.aiclient}")
-        raise ValueError(f"Unknown AI client type: {config.aiclient}")
+    langchain_app_create(app, config)
 
     return app
 

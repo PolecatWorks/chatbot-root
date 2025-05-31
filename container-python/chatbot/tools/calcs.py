@@ -30,6 +30,7 @@ def sum_numbers(numbers: list[float]) -> float:
     Returns:
         The sum of the numbers.
     """
+    logger.debug(f"Summing numbers: {numbers}")
     return sum(numbers)
 
 
@@ -42,6 +43,7 @@ def multiply_numbers(numbers: list[float]) -> float:
     Returns:
         The product of the numbers.
     """
+    logger.debug(f"Multiplying numbers: {numbers}")
     result = 1.0
     for num in numbers:
         result *= num

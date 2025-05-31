@@ -57,7 +57,9 @@ class MyBot(ActivityHandler):
             turn_context.activity.conversation, turn_context.activity.text
         )
 
+        logger.debug("LLM reply: %s", llm_reply)
         await turn_context.send_activity(llm_reply)
+
 
     async def on_members_added_activity(
         self, members_added: ChannelAccount, turn_context: TurnContext

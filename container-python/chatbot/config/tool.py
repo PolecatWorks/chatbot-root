@@ -1,9 +1,14 @@
 from datetime import timedelta
+from typing import List
 from pydantic import BaseModel, Field
 
 
 class ToolConfig(BaseModel):
     """Configuration for tool execution."""
+
+    name: str = Field(
+        description="Name of the tool, used to identify it in the system"
+    )
 
     max_instances: int = Field(
         default=5,
@@ -17,7 +22,7 @@ class ToolConfig(BaseModel):
     #     description="Per-tool configuration"
     # )
     instance_counts: int = Field(
-        default_factory=5,
+        default=5,
         description="Current count of running instances for each tool",
     )
 
@@ -25,7 +30,7 @@ class ToolConfig(BaseModel):
 class ToolBoxConfig(BaseModel):
     """Configuration for tool execution."""
 
-    tools: dict[str, ToolConfig] = Field(
+    tools: List[ToolConfig] = Field(
         description="Per-tool configuration with default settings"
     )
     max_concurrent: int = Field(

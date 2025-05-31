@@ -1,15 +1,15 @@
 from typing import Any, Callable, Dict
 
 from chatbot.config import ServiceConfig
-from chatbot.config.gemini import GeminiConfig
+
 
 from chatbot.tools import calcs, customer
-from chatbot.myai import AIClient, MyAI
+from chatbot.myai import AIClient, MyAI, functionregistry
 from google import genai
 from aiohttp import web
 
-from chatbot import keys, tools, toolutils
-from google.genai import types
+from chatbot import keys, tools
+
 
 import logging
 from dataclasses import dataclass
@@ -80,10 +80,10 @@ def gemini_app_create(app: web.Application, config: ServiceConfig):
 
     client = Gemini(config.aiclient)
 
-    function_registry = toolutils.FunctionRegistry(client, config.myai.toolbox)
+    function_registry = functionregistry.FunctionRegistry(client, config.myai.toolbox)
 
-    function_registry.register(calcs.sum_numbers, calcs.multiply_numbers)
-    function_registry.register(
+    function_registry.register_tools(calcs.sum_numbers, calcs.multiply_numbers)
+    function_registry.register_tools(
         customer.search_records_by_name, customer.delete_record_by_id
     )
 

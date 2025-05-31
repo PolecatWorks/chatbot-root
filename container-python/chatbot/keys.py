@@ -12,4 +12,4 @@ bot = aiohttp.web.AppKey("bot")
 
 # The key for the Gemini service, used to store and retrieve Gemini-related data
 # and configurations in the aiohttp application context.
-myai = aiohttp.web.AppKey("gemini")
+myai = aiohttp.web.AppKey("myai")
