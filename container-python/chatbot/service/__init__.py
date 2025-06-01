@@ -2,7 +2,7 @@ import asyncio
 import logging
 
 
-from chatbot.conversationllmhandler import langchain_app_create
+from chatbot.llmconversationhandler import langchain_app_create
 from chatbot.service.state import Events
 from chatbot.hams import hams_app_create
 from chatbot.config import ServiceConfig

@@ -5,7 +5,7 @@ from chatbot import keys
 import logging
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
-from chatbot.conversationllmhandler import toolregistry
+from chatbot.llmconversationhandler import toolregistry
 from chatbot.tools import calcs, customer
 from langchain_core.messages import (
     HumanMessage,
