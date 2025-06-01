@@ -405,3 +405,11 @@ Create your app secret
 Deploy to your local k8s using helm on the command line
 
   helm upgrade -i dev charts/chatbot -f charts/chatbot-values.yaml
+
+
+
+# Useful test to validate LLM Tools
+
+Run the following prompt to test parallel actions and chaining of tools
+
+    please add 3 and 5 and also multiple 9 and 6. Take the results of both calculations and multiply them together.
