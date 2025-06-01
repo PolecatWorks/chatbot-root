@@ -22,9 +22,7 @@ from langchain.chat_models import init_chat_model
 logger = logging.getLogger(__name__)
 
 
-def langchain_app_create(
-    app: web.Application, config: ServiceConfig, prometheus_registry: CollectorRegistry
-):
+def langchain_app_create(app: web.Application, config: ServiceConfig):
     """
     Initialize the AI client and add it to the aiohttp application context.
     """
@@ -39,9 +37,7 @@ def langchain_app_create(
         ),
     )
 
-    app[keys.myai] = LLMConversationHandler(
-        config.myai, model, mytools, prometheus_registry
-    )
+    app[keys.myai] = LLMConversationHandler(config.myai, model, mytools)
 
 
 class LLMConversationHandler:
@@ -63,21 +59,16 @@ class LLMConversationHandler:
         config: MyAiConfig,
         client: BaseChatModel,
         tools: List[Callable],
-        prometheus_registry: CollectorRegistry,
     ):
         self.config = config
         self.tools = tools
-        self.function_registry = toolregistry.ToolRegistry(
-            config.toolbox, prometheus_registry
-        )
+        self.function_registry = toolregistry.ToolRegistry(config.toolbox)
         self.function_registry.register_tools(tools)
         self.client = client.bind_tools(self.tools)
 
         self.conversationContent: Dict[str, Any] = {}
         # self.prometheus_registry = prometheus_registry
-        self.llm_summary_metric = Summary(
-            "llm_usage", "Summary of LLM usage", registry=prometheus_registry
-        )
+        self.llm_summary_metric = Summary("llm_usage", "Summary of LLM usage")
 
     def register_tools(self, *functions: Callable):
         """Registers the tools with the Gemini client."""

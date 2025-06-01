@@ -60,14 +60,13 @@ class AzureBot(ActivityHandler):
 
     # See https://aka.ms/about-bot-activity-message to learn more about the message and other activity types.
 
-    def __init__(self, app: web.Application, prometheus_registry: CollectorRegistry):
+    def __init__(self, app: web.Application):
         super().__init__()
         self.app = app
         self.chat_metric = Summary(
             "chat_usage",
             "Summary of Chat actions",
             ["action"],
-            registry=prometheus_registry,
         )
 
     async def on_message_activity(self, turn_context: TurnContext):
@@ -89,9 +88,7 @@ class AzureBot(ActivityHandler):
                     await turn_context.send_activity("Hello and welcome!")
 
 
-def azure_app_create(
-    app: web.Application, config: ServiceConfig, prometheus_registry: CollectorRegistry
-) -> web.Application:
+def azure_app_create(app: web.Application, config: ServiceConfig) -> web.Application:
     """
     Create the service with the given configuration file
     """
@@ -103,7 +100,7 @@ def azure_app_create(
 
     app[keys.botadapter].on_turn_error = on_error
 
-    app[keys.bot] = AzureBot(app, prometheus_registry)
+    app[keys.bot] = AzureBot(app)
 
     app.add_routes([web.view(config.bot.api_path, AzureBotView)])
     logger.info(

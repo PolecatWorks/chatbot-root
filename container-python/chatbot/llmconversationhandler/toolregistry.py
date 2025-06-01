@@ -27,9 +27,7 @@ class ToolDefinition:
 
 
 class ToolRegistry:
-    def __init__(
-        self, toolboxConfig: ToolBoxConfig, prometheus_registry: CollectorRegistry
-    ):
+    def __init__(self, toolboxConfig: ToolBoxConfig):
         self.registry: Dict[str, ToolDefinition] = {}
 
         self.toolboxConfig = toolboxConfig
@@ -42,7 +40,6 @@ class ToolRegistry:
             "tool_usage",
             "Summary of tool usage",
             ["tool_name"],
-            registry=prometheus_registry,
         )
 
     def register_tools(self, tools: List[StructuredTool]) -> None:

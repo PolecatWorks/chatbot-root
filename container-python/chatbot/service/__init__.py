@@ -47,17 +47,13 @@ async def service_coroutine_cleanup(app: web.Application):
     logger.info("Service: coroutine cleanup")
 
 
-def service_app_create(
-    app: web.Application, config: ServiceConfig, prometheus_registry: CollectorRegistry
-) -> web.Application:
+def service_app_create(app: web.Application, config: ServiceConfig) -> web.Application:
     """
     Create the service with the given configuration file
     """
 
     app[keys.config] = config
-    app[keys.events] = Events(
-        app[keys.config].events, datetime.now(timezone.utc), 0, prometheus_registry
-    )
+    app[keys.events] = Events(app[keys.config].events, datetime.now(timezone.utc), 0)
 
     app.cleanup_ctx.append(service_coroutine_cleanup)
 
@@ -81,13 +77,10 @@ def service_init(app: web.Application, config: ServiceConfig):
     logger.info(f"CONFIG\n{to_yaml_str(config, indent=2)}")
 
     hams_app_create(app, config.hams)
-    hams: Hams = app[keys.hams]
 
-    prometheus_registry = hams.prometheus
-
-    service_app_create(app, config, prometheus_registry)
-    azure_app_create(app, config, prometheus_registry)
-    langchain_app_create(app, config, prometheus_registry)
+    service_app_create(app, config)
+    azure_app_create(app, config)
+    langchain_app_create(app, config)
 
     return app
 

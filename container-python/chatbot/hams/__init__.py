@@ -71,9 +71,9 @@ class MonitorView(web.View):
     async def get(self):
         hams: Hams = self.request.app[keys.hams]
 
-        metrics_data = generate_latest(hams.prometheus_registry)
+        response = {"monitor": True}
 
-        return web.Response(body=metrics_data, content_type="text/plain; version=0.0.4")
+        return web.json_response(response, status=200)
 
 
 class ShutdownView(web.View):
@@ -101,7 +101,6 @@ class Hams:
         self.config = config
         # Create a Prometheus metrics registry for this Hams instance
 
-        self.prometheus_registry = CollectorRegistry()
         # Example metric: count requests to alive endpoint
         self.version = "1.0.0"  # Set your service version here
 
@@ -113,13 +112,8 @@ class Hams:
         self.version_metric = Info(
             "service_version",
             "Service version information",
-            registry=self.prometheus_registry,
         )
         self.version_metric.info({"version": version})
-
-    @property
-    def prometheus(self) -> CollectorRegistry:
-        return self.prometheus_registry
 
     def alive(self) -> bool:
         return True

@@ -23,7 +23,6 @@ class Events:
         config: EventConfig,
         lastTime: datetime,
         chunkCount: int,
-        registry: CollectorRegistry,
     ):
 
         self.config = config
@@ -31,9 +30,6 @@ class Events:
         # If time is after lastTime then subtract one from chunkCount (if greater than 0). Then schedule for
         self.chunkCount = chunkCount
         # TODO: Consider to use set_function for Gauge as more direct method of updating
-        self.chunkGauge = Gauge(
-            "chunk_gauge", "Count of chunks remaining", registry=registry
-        )
 
     def updateChunk(self, time: datetime) -> int:
         if self.lastTime < time:
