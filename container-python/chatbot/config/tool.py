@@ -12,13 +12,11 @@ class ToolConfig(BaseModel):
         default=5,
         description="Default maximum number of concurrent instances for tools",
     )
+
     timeout: timedelta = Field(
         default=timedelta(seconds=30), description="Default timeout for tools"
     )
-    # tool_configs: Dict[str, ToolLimits] = Field(
-    #     default_factory=dict,
-    #     description="Per-tool configuration"
-    # )
+
     instance_counts: int = Field(
         default=5,
         description="Current count of running instances for each tool",

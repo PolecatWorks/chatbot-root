@@ -2,23 +2,17 @@ import asyncio
 import logging
 
 
-from chatbot.myai import langchain_app_create
+from chatbot.conversationllmhandler import langchain_app_create
 from chatbot.service.state import Events
 from chatbot.hams import hams_app_create
 from chatbot.config import ServiceConfig
-from chatbot.service.web import ChunkView
-from chatbot.service.bot import MessageView
-from chatbot.bot import MyBot, on_error
+from chatbot.service.webview import ChunkView
+from chatbot.azurebot.webview import AzureBotView
+from chatbot.azurebot import azure_app_create
 from chatbot import keys
 from aiohttp import web
 from datetime import datetime, timezone
 
-
-from botbuilder.core import (
-    BotFrameworkAdapterSettings,
-    BotFrameworkAdapter,
-    TurnContext,
-)
 from pydantic_yaml import to_yaml_str
 
 
@@ -64,21 +58,6 @@ def service_app_create(app: web.Application, config: ServiceConfig) -> web.Appli
 
     app.add_routes([web.view(f"/{config.webservice.prefix}/chunks", ChunkView)])
 
-    # Add the bot settings and adapter to the app
-    app[keys.botsettings] = BotFrameworkAdapterSettings(
-        config.bot.app_id, config.bot.app_password.get_secret_value()
-    )
-    app[keys.botadapter] = BotFrameworkAdapter(app[keys.botsettings])
-
-    app[keys.botadapter].on_turn_error = on_error
-
-    app[keys.bot] = MyBot(app)
-
-    app.add_routes([web.view(config.bot.api_path, MessageView)])
-    logger.info(
-        f"Bot: {app[keys.config].webservice.url.host}:{app[keys.config].webservice.url.port}{app[keys.config].bot.api_path}"
-    )
-
     app[keys.webservice] = app
 
     logger.info(
@@ -89,12 +68,16 @@ def service_app_create(app: web.Application, config: ServiceConfig) -> web.Appli
 
 
 def service_init(app: web.Application, config: ServiceConfig):
+    """
+    Initialize the service with the given configuration file
+    This is seperated from service_init as it is also used from the adev dev server
+    """
 
     logger.info(f"CONFIG\n{to_yaml_str(config, indent=2)}")
 
     service_app_create(app, config)
     hams_app_create(app, config.hams)
-
+    azure_app_create(app, config)
     langchain_app_create(app, config)
 
     return app
@@ -112,6 +95,7 @@ def service_start(config: ServiceConfig):
         app,
         host=app[keys.config].webservice.url.host,
         port=app[keys.config].webservice.url.port,
+        # TODO: Review the custom logging and replace into config
         access_log_format='%a "%r" %s %b "%{Referer}i" "%{User-Agent}i"',
         access_log=logger,
     )

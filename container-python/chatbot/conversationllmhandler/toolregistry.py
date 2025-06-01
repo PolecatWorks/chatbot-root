@@ -17,61 +17,57 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class ToolDeclaration:
-    """Dataclass to hold function declaration information."""
+class ToolDefinition:
+    """Dataclass to hold function definition and its associated tool."""
 
     name: str
     definition: Any
     tool: StructuredTool
 
-    # @classmethod
-    # def from_callable(
-    #     cls, client: AIClient, callable: Callable
-    # ) -> "ToolDeclaration":
-    #     """Creates a FunctionDeclaration from a callable."""
-    #     tool_definition = types.FunctionDeclaration.from_callable(
-    #         callable=callable, client=client
-    #     )
-    #     return cls(
-    #         name=tool_definition.name, definition=tool_definition, callable=callable
-    #     )
 
-
-class FunctionRegistry:
+class ToolRegistry:
     def __init__(self, toolboxConfig: ToolBoxConfig):
-        self.registry: Dict[str, ToolDeclaration] = {}
+        self.registry: Dict[str, ToolDefinition] = {}
 
         self.toolboxConfig = toolboxConfig
+
+        # Load the tool definition as dict from the list form (List form is easier to manage in k8s (ie lists enable replace vs change))
+        self.tool_definition_dict = {tool.name: tool for tool in self.toolboxConfig.tools}
+
 
     def register_tools(self, tools: List[StructuredTool]) -> None:
         """Registers the tools with the Gemini client."""
 
-        tool_definition_dict = {tool.name: tool for tool in self.toolboxConfig.tools}
-
         for tool in tools:
-            if not callable(tool):
-                raise ValueError(f"Tool {tool} is not callable.")
+            self.register_tool(tool)
 
-            tool_name = tool.name
 
-            if tool_name not in tool_definition_dict:
-                logger.debug(
-                    f"Cannot registering tool: {tool_name}. It is not defined in the toolbox configuration."
-                )
-                raise ValueError(f"Tool {tool_name} is not configured")
+    def register_tool(self, tool: StructuredTool) -> None:
+        """Registers the tools with the Gemini client."""
 
-            buf = io.StringIO()
-            yaml.dump(tool.tool_call_schema.model_json_schema(), buf)
+        if not callable(tool):
+            raise ValueError(f"Tool {tool} is not callable.")
 
-            logger.info(f"Registering tool: {tool_name} with schema:\n{buf.getvalue()}")
+        tool_name = tool.name
 
-            self.registry[tool_name] = ToolDeclaration(
-                name=tool_name,
-                tool=tool,
-                definition=tool_definition_dict[tool_name],
+        if tool_name not in self.tool_definition_dict:
+            logger.debug(
+                f"Cannot registering tool: {tool_name}. It is not defined in the toolbox configuration."
             )
+            raise ValueError(f"Tool {tool_name} is not configured")
 
-            logger.debug(f"Tool registered: {tool_name}")
+        buf = io.StringIO()
+        yaml.dump(tool.tool_call_schema.model_json_schema(), buf)
+
+        logger.info(f"Registering tool: {tool_name} with schema:\n{buf.getvalue()}")
+
+        self.registry[tool_name] = ToolDefinition(
+            name=tool_name,
+            tool=tool,
+            definition=self.tool_definition_dict[tool_name],
+        )
+
+        logger.debug(f"Tool registered: {tool_name}")
 
     async def perform_tool_actions(self, parts: List[ToolCall]) -> List[ToolMessage]:
         """Performs actions using the registered tools.

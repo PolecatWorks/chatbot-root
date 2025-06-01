@@ -9,8 +9,16 @@ from chatbot import keys
 
 from datetime import datetime
 import traceback
-import sys
 import logging
+
+from chatbot.config import ServiceConfig
+
+from botbuilder.core import (
+    BotFrameworkAdapterSettings,
+    BotFrameworkAdapter,
+    TurnContext,
+)
+from chatbot.azurebot.webview import AzureBotView
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -44,7 +52,7 @@ async def on_error(context: TurnContext, error: Exception):
         await context.send_activity(trace_activity)
 
 
-class MyBot(ActivityHandler):
+class AzureBot(ActivityHandler):
     # See https://aka.ms/about-bot-activity-message to learn more about the message and other activity types.
 
     def __init__(self, app: web.Application):
@@ -66,3 +74,24 @@ class MyBot(ActivityHandler):
         for member_added in members_added:
             if member_added.id != turn_context.activity.recipient.id:
                 await turn_context.send_activity("Hello and welcome!")
+
+
+def azure_app_create(app: web.Application, config: ServiceConfig) -> web.Application:
+    """
+    Create the service with the given configuration file
+    """
+    # Add the bot settings and adapter to the app
+    app[keys.botsettings] = BotFrameworkAdapterSettings(
+        config.bot.app_id, config.bot.app_password.get_secret_value()
+    )
+    app[keys.botadapter] = BotFrameworkAdapter(app[keys.botsettings])
+
+    app[keys.botadapter].on_turn_error = on_error
+
+    app[keys.bot] = AzureBot(app)
+
+    app.add_routes([web.view(config.bot.api_path, AzureBotView)])
+    logger.info(
+        f"Bot: {app[keys.config].webservice.url.host}:{app[keys.config].webservice.url.port}{app[keys.config].bot.api_path}"
+    )
+    return app

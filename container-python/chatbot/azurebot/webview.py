@@ -11,7 +11,7 @@ from http import HTTPStatus
 logger = logging.getLogger(__name__)
 
 
-class MessageView(web.View):
+class AzureBotView(web.View):
 
     async def options(self) -> Response:
         """

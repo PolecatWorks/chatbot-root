@@ -11,6 +11,10 @@ DOCKER=docker
 
 BASE_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 VENV := ${BASE_DIR}venv
+PIP := ${VENV}/bin/pip
+POETRY := ${VENV}/bin/poetry
+
+
 
 .ONESHELL:
 docker-build:
@@ -71,29 +75,32 @@ terraform-apply:
 terraform-destroy:
 	cd terraform && terraform destroy
 
-python-venv:
+${VENV}:
 	@echo Creating python venv
 	python3 -m venv venv && \
-	venv/bin/pip install --upgrade pip && \
-	venv/bin/pip install poetry && \
+	${PIP} install --upgrade pip && \
+	${PIP} install poetry && \
 	cd container-python && \
-	venv/bin/poetry install --with dev && \
-	venv/bin/pip install -e .[dev]
+	${POETRY} install --with dev && \
+	${PIP} install -e .[dev]
 
-python-run:
+python-venv: ${VENV}
+
+
+python-run: ${VENV}
 	@echo Running python app
 	cd container-python && \
-	${BASE_DIR}/venv/bin/chatbot start --secrets tests/test_data/secrets --config tests/test_data/config.yaml
+	${VENV}/bin/chatbot start --secrets tests/test_data/secrets --config tests/test_data/config.yaml
 
 
-python-dev:
+python-dev: ${VENV}
 	@echo Dev run python app
 	cd container-python && \
 	${VENV}/bin/adev runserver
 
 
 python-docker:
-	$(DOCKER)  build container-python -t $(NAME) -f container-python/Dockerfile
+	$(DOCKER) build container-python -t $(NAME) -f container-python/Dockerfile
 
 python-docker-run: python-docker
 	$(DOCKER) run -it --rm \
