@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from chatbot.config import EventConfig
-from prometheus_client import Gauge
+from prometheus_client import CollectorRegistry, Gauge
 
 import logging
 
@@ -17,6 +17,23 @@ class Events:
     chunkCount: int
     # TODO: Consider to use set_function for Gauge as more direct method of updating
     chunkGauge = Gauge("chunk_gauge", "Count of chunks remaining")
+
+    def __init__(
+        self,
+        config: EventConfig,
+        lastTime: datetime,
+        chunkCount: int,
+        registry: CollectorRegistry,
+    ):
+
+        self.config = config
+        self.lastTime = lastTime
+        # If time is after lastTime then subtract one from chunkCount (if greater than 0). Then schedule for
+        self.chunkCount = chunkCount
+        # TODO: Consider to use set_function for Gauge as more direct method of updating
+        self.chunkGauge = Gauge(
+            "chunk_gauge", "Count of chunks remaining", registry=registry
+        )
 
     def updateChunk(self, time: datetime) -> int:
         if self.lastTime < time:

@@ -4,7 +4,7 @@ import logging
 
 from chatbot.llmconversationhandler import langchain_app_create
 from chatbot.service.state import Events
-from chatbot.hams import hams_app_create
+from chatbot.hams import Hams, hams_app_create
 from chatbot.config import ServiceConfig
 from chatbot.service.webview import ChunkView
 from chatbot.azurebot.webview import AzureBotView
@@ -13,6 +13,7 @@ from chatbot import keys
 from aiohttp import web
 from datetime import datetime, timezone
 
+from prometheus_client import CollectorRegistry
 from pydantic_yaml import to_yaml_str
 
 
@@ -46,13 +47,17 @@ async def service_coroutine_cleanup(app: web.Application):
     logger.info("Service: coroutine cleanup")
 
 
-def service_app_create(app: web.Application, config: ServiceConfig) -> web.Application:
+def service_app_create(
+    app: web.Application, config: ServiceConfig, prometheus_registry: CollectorRegistry
+) -> web.Application:
     """
     Create the service with the given configuration file
     """
 
     app[keys.config] = config
-    app[keys.events] = Events(app[keys.config].events, datetime.now(timezone.utc), 0)
+    app[keys.events] = Events(
+        app[keys.config].events, datetime.now(timezone.utc), 0, prometheus_registry
+    )
 
     app.cleanup_ctx.append(service_coroutine_cleanup)
 
@@ -75,10 +80,14 @@ def service_init(app: web.Application, config: ServiceConfig):
 
     logger.info(f"CONFIG\n{to_yaml_str(config, indent=2)}")
 
-    service_app_create(app, config)
     hams_app_create(app, config.hams)
-    azure_app_create(app, config)
-    langchain_app_create(app, config)
+    hams: Hams = app[keys.hams]
+
+    prometheus_registry = hams.prometheus
+
+    service_app_create(app, config, prometheus_registry)
+    azure_app_create(app, config, prometheus_registry)
+    langchain_app_create(app, config, prometheus_registry)
 
     return app
 

@@ -6,7 +6,6 @@ import logging
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from chatbot.llmconversationhandler import toolregistry
-from chatbot.tools import calcs, customer
 from langchain_core.messages import (
     HumanMessage,
     SystemMessage,
@@ -14,17 +13,21 @@ from langchain_core.messages import (
 )
 from botbuilder.schema import ConversationAccount
 from langchain_core.language_models import BaseChatModel
+from prometheus_client import CollectorRegistry, Summary
+from chatbot.tools import mytools
+from langchain.chat_models import init_chat_model
+
 
 # Set up logging
 logger = logging.getLogger(__name__)
 
 
-def langchain_app_create(app: web.Application, config: ServiceConfig):
+def langchain_app_create(
+    app: web.Application, config: ServiceConfig, prometheus_registry: CollectorRegistry
+):
     """
-    Initialize the Azure client and add it to the aiohttp application context.
+    Initialize the AI client and add it to the aiohttp application context.
     """
-
-    from langchain.chat_models import init_chat_model
 
     model = init_chat_model(
         model=config.aiclient.model,
@@ -35,12 +38,10 @@ def langchain_app_create(app: web.Application, config: ServiceConfig):
             else None
         ),
     )
-    from chatbot.tools import mytools
 
-
-    print(type(mytools))
-
-    app[keys.myai] = LLMConversationHandler(config.myai, model, mytools)
+    app[keys.myai] = LLMConversationHandler(
+        config.myai, model, mytools, prometheus_registry
+    )
 
 
 class LLMConversationHandler:
@@ -58,15 +59,25 @@ class LLMConversationHandler:
     """
 
     def __init__(
-        self, config: MyAiConfig, client: BaseChatModel, tools: List[Callable]
+        self,
+        config: MyAiConfig,
+        client: BaseChatModel,
+        tools: List[Callable],
+        prometheus_registry: CollectorRegistry,
     ):
         self.config = config
         self.tools = tools
-        self.function_registry = toolregistry.ToolRegistry(config.toolbox)
+        self.function_registry = toolregistry.ToolRegistry(
+            config.toolbox, prometheus_registry
+        )
         self.function_registry.register_tools(tools)
         self.client = client.bind_tools(self.tools)
 
         self.conversationContent: Dict[str, Any] = {}
+        # self.prometheus_registry = prometheus_registry
+        self.llm_summary_metric = Summary(
+            "llm_usage", "Summary of LLM usage", registry=prometheus_registry
+        )
 
     def register_tools(self, *functions: Callable):
         """Registers the tools with the Gemini client."""
@@ -94,18 +105,19 @@ class LLMConversationHandler:
         if conversation.id in self.conversationContent:
             messages = self.conversationContent[conversation.id]
         else:
-            self.conversationContent[conversation.id] = [
+            messages = [
                 SystemMessage(content=instruction.text)
                 for instruction in self.config.system_instruction
             ]
-            messages = self.conversationContent[conversation.id]
+            self.conversationContent[conversation.id] = messages
 
         messages.append(HumanMessage(content=prompt))
 
         # Get tool calls from the response's additional_kwargs
         while True:
+            with self.llm_summary_metric.time():
+                response = self.client.invoke(messages)
 
-            response = self.client.invoke(messages)
             logger.debug(f"Response from LLM: {response} is of type {type(response)}")
 
             if not isinstance(response, AIMessage):

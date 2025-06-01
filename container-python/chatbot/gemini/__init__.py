@@ -4,7 +4,11 @@ from chatbot.config import ServiceConfig
 
 
 from chatbot.tools import calcs, customer
-from chatbot.llmconversationhandler import AIClient, LLMConversationHandler, toolregistry
+from chatbot.llmconversationhandler import (
+    AIClient,
+    LLMConversationHandler,
+    toolregistry,
+)
 from google import genai
 from aiohttp import web
 

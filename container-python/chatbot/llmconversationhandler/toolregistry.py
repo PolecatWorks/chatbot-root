@@ -6,6 +6,7 @@ from langchain_core.tools.structured import StructuredTool
 import logging
 import asyncio
 from pydantic_yaml import to_yaml_str
+from prometheus_client import CollectorRegistry, Summary
 
 import io
 from ruamel.yaml import YAML
@@ -26,21 +27,29 @@ class ToolDefinition:
 
 
 class ToolRegistry:
-    def __init__(self, toolboxConfig: ToolBoxConfig):
+    def __init__(
+        self, toolboxConfig: ToolBoxConfig, prometheus_registry: CollectorRegistry
+    ):
         self.registry: Dict[str, ToolDefinition] = {}
 
         self.toolboxConfig = toolboxConfig
 
         # Load the tool definition as dict from the list form (List form is easier to manage in k8s (ie lists enable replace vs change))
-        self.tool_definition_dict = {tool.name: tool for tool in self.toolboxConfig.tools}
-
+        self.tool_definition_dict = {
+            tool.name: tool for tool in self.toolboxConfig.tools
+        }
+        self.tool_usage_metric = Summary(
+            "tool_usage",
+            "Summary of tool usage",
+            ["tool_name"],
+            registry=prometheus_registry,
+        )
 
     def register_tools(self, tools: List[StructuredTool]) -> None:
         """Registers the tools with the Gemini client."""
 
         for tool in tools:
             self.register_tool(tool)
-
 
     def register_tool(self, tool: StructuredTool) -> None:
         """Registers the tools with the Gemini client."""
@@ -87,19 +96,22 @@ class ToolRegistry:
 
         logger.debug(f"Received tool call: {tool_call}")
 
+        tool_name = tool_call["name"]
+
         try:
             # Get the function from the registry
-            declaration = self.registry.get(tool_call["name"])
+            declaration = self.registry.get(tool_name)
 
             print(f"registry: {self.registry}")
 
             logger.debug(f"Tool declaration found: {declaration}")
 
             # Call the function with its arguments
-            if asyncio.iscoroutinefunction(declaration.tool):
-                result = await declaration.tool.invoke(tool_call["args"])
-            else:
-                result = declaration.tool.invoke(tool_call["args"])
+            with self.tool_usage_metric.labels(tool_name).time():
+                if asyncio.iscoroutinefunction(declaration.tool):
+                    result = await declaration.tool.invoke(tool_call["args"])
+                else:
+                    result = declaration.tool.invoke(tool_call["args"])
 
             return ToolMessage(
                 content=result,
@@ -108,7 +120,7 @@ class ToolRegistry:
             )
 
         except Exception as e:
-            logger.error(f"Error executing tool {tool_call['name']}: {str(e)}")
+            logger.error(f"Error executing tool {tool_name}: {str(e)}")
             return ToolMessage(
                 content=f"Error executing tool: {str(e)}",
                 tool_call_id=tool_call["id"],

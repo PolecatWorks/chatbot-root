@@ -5,6 +5,11 @@ from chatbot import keys
 import signal
 import asyncio
 from prometheus_async import aio
+from prometheus_client import CollectorRegistry, Counter
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+from prometheus_client import Summary
+from prometheus_client import Info
+import importlib.metadata
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -64,8 +69,11 @@ class ReadyView(web.View):
 
 class MonitorView(web.View):
     async def get(self):
-        ready = {"monitor": True}
-        return web.json_response(ready, status=200)
+        hams: Hams = self.request.app[keys.hams]
+
+        metrics_data = generate_latest(hams.prometheus_registry)
+
+        return web.Response(body=metrics_data, content_type="text/plain; version=0.0.4")
 
 
 class ShutdownView(web.View):
@@ -91,6 +99,27 @@ class Hams:
         self.app = app
         self.hams_app = hams_app
         self.config = config
+        # Create a Prometheus metrics registry for this Hams instance
+
+        self.prometheus_registry = CollectorRegistry()
+        # Example metric: count requests to alive endpoint
+        self.version = "1.0.0"  # Set your service version here
+
+        try:
+            version = importlib.metadata.version("chatbot")
+        except importlib.metadata.PackageNotFoundError:
+            version = "unknown"
+
+        self.version_metric = Info(
+            "service_version",
+            "Service version information",
+            registry=self.prometheus_registry,
+        )
+        self.version_metric.info({"version": version})
+
+    @property
+    def prometheus(self) -> CollectorRegistry:
+        return self.prometheus_registry
 
     def alive(self) -> bool:
         return True
