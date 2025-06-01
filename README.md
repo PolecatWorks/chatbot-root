@@ -1,7 +1,50 @@
 # Build a MS Teams Bot
 
 Create a bot for MS Teams.
-Use Rust to build the app.
+
+The Bot follows a communications protocol supported by the Azure Bot Framework
+
+
+## Interaction flow
+
+https://mermaid.js.org/syntax/sequenceDiagram.html
+
+Start a conversation
+
+```mermaid
+sequenceDiagram
+    participant Teams as MS Teams Client
+    participant Bot as Bot Framework
+    participant Service as Bot Service
+    participant LLM as LLM Service
+    participant Tools as Tool Registry
+
+    Teams ->> Bot: POST /v3/conversations (Start chat)
+    Bot ->> Service: Activity.conversationUpdate
+    Service ->> Bot: 200 OK
+
+    Note over Teams,Bot: User sends message
+    Teams ->> Bot: POST activities (message)
+    Bot ->> Service: Activity.message
+
+    loop Until Final LLM Response
+    Service ->> LLM: Send user message and history
+    LLM ->> Service: LLM response
+
+    alt Requires Tool Execution
+        Service ->> Tools: Request tool execution
+        Tools ->> Tools: Execute requested tools
+        Tools ->> Service: Return tool results
+    else Direct Response
+        Note over LLM,Service: No tools needed. Break loop
+    end
+    end
+
+    Service ->> Bot: POST activity (response)
+    Bot ->> Teams: Deliver message to user
+
+```
+
 
 ## Overview of Bots
 
