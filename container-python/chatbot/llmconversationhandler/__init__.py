@@ -1,3 +1,4 @@
+import base64
 from typing import Any, Callable, Dict, List
 from chatbot.config import MyAiConfig, ServiceConfig
 from aiohttp import web
@@ -96,6 +97,46 @@ class LLMConversationHandler:
         self.tool_config.tools.append(functions)
 
         logger.debug(f"Registered tools: {[func.__name__ for func in functions]}")
+
+
+    def get_conversation(self, conversation: ConversationAccount) -> List[Any]:
+        if conversation.id in self.conversationContent:
+            messages = self.conversationContent[conversation.id]
+        else:
+            messages = [
+                SystemMessage(content=instruction.text)
+                for instruction in self.config.system_instruction
+            ]
+            self.conversationContent[conversation.id] = messages
+        return messages
+
+
+    async def upload(self, conversation: ConversationAccount, name: str, mime_type: str, file_bytes: bytes) -> None:
+        """Uploads a file to the AI model messages.
+        This method encodes the file bytes to base64 and prepares it for the AI model.
+
+        Returns:
+            None
+        """
+        messages = self.get_conversation(conversation)
+
+        encoded = base64.b64encode(file_bytes).decode("utf-8")
+
+        messages.append(
+            HumanMessage(
+                content=[
+                    {
+                        "type": "file",
+                        "source_type": "base64",
+                        "data": encoded,
+                        "mine_type": mime_type,
+                    }
+                ]
+            )
+        )
+
+        logger.debug("File added to conversation but not sent to LLM yet.")
+        return None
 
     async def chat(self, conversation: ConversationAccount, prompt: str) -> str:
         """Make a chat request to the AI model with the provided prompt.
