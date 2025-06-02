@@ -6,6 +6,7 @@ import logging
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from chatbot.llmconversationhandler import toolregistry
+
 from langchain_core.messages import (
     HumanMessage,
     SystemMessage,
@@ -13,9 +14,11 @@ from langchain_core.messages import (
 )
 from botbuilder.schema import ConversationAccount
 from langchain_core.language_models import BaseChatModel
+
 from prometheus_client import CollectorRegistry, Summary
 from chatbot.tools import mytools
 from langchain.chat_models import init_chat_model
+import httpx
 
 
 # Set up logging
@@ -26,16 +29,29 @@ def langchain_app_create(app: web.Application, config: ServiceConfig):
     """
     Initialize the AI client and add it to the aiohttp application context.
     """
+    httpx_client = httpx.Client()
 
-    model = init_chat_model(
-        model=config.aiclient.model,
-        model_provider=config.aiclient.model_provider,
-        google_api_key=(
-            config.aiclient.google_api_key.get_secret_value()
-            if config.aiclient.model_provider == "google_genai"
-            else None
-        ),
-    )
+    match config.aiclient.model_provider:
+        case "google_genai":
+            from langchain_google_genai import ChatGoogleGenerativeAI
+            model = ChatGoogleGenerativeAI(
+                model=config.aiclient.model,
+                google_api_key=config.aiclient.google_api_key.get_secret_value(),
+                http_client=httpx_client,
+            )
+        case "openai":
+            from langchain_openai import AzureChatOpenAI
+
+            # https://python.langchain.com/api_reference/openai/llms/langchain_openai.llms.azure.AzureOpenAI.html#langchain_openai.llms.azure.AzureOpenAI.http_client
+            model = AzureChatOpenAI(
+                model=config.aiclient.model,
+                model_name=config.aiclient.model,
+                http_client=httpx_client,
+            )
+        case _:
+            raise ValueError(
+                f"Unsupported model provider: {config.aiclient.model_provider}"
+            )
 
     app[keys.myai] = LLMConversationHandler(config.myai, model, mytools)
 
