@@ -79,6 +79,9 @@ class LangchainConfig(BaseModel):
     """
     Configuration for LangChain, supporting both Azure OpenAI and GitHub-hosted models
     """
+    model_provider: Literal["azure_openai", "github", "google_genai"] = Field(
+        default="azure", description="Provider for the model: 'azure' or 'github'"
+    )
 
     # Azure OpenAI settings
     azure_endpoint: HttpUrl | None = Field(
@@ -114,9 +117,6 @@ class LangchainConfig(BaseModel):
     # Common settings
     model: str = Field(
         description="The model to use (e.g., 'gemini-1.5-flash-latest' or GitHub model name)"
-    )
-    model_provider: Literal["azure", "github", "google_genai"] = Field(
-        default="azure", description="Provider for the model: 'azure' or 'github'"
     )
     temperature: float = Field(
         default=0.7,
