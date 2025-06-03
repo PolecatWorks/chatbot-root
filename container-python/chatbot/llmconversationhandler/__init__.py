@@ -46,7 +46,7 @@ def langchain_app_create(app: web.Application, config: ServiceConfig):
             model = AzureChatOpenAI(
                 model=config.aiclient.model,
                 azure_endpoint=str(config.aiclient.azure_endpoint),
-                api_version=config.aiclient.api_version,
+                api_version=config.aiclient.azure_api_version,
                 api_key=config.aiclient.azure_api_key.get_secret_value(),
                 http_client=httpx_client,
             )
