@@ -130,6 +130,7 @@ class LLMConversationHandler:
                         "source_type": "base64",
                         "data": encoded,
                         "mine_type": mime_type,
+                        "filename": name,
                     }
                 ]
             )
