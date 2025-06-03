@@ -111,6 +111,7 @@ class LangchainConfig(BaseModel):
         description="Optional API key for authenticated access to GitHub model",
     )
     google_api_key: SecretStr | None = Field(
+        default=None,
         description="Optional API key for authenticated access to Genai model"
     )
 
