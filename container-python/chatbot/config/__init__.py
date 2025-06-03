@@ -95,7 +95,7 @@ class LangchainConfig(BaseModel):
     )
     azure_api_version: str | None = Field(
         default=None,
-        description="API version for Azure OpenAI, default is '2023-05-15'",
+        description="API version for Azure OpenAI, default is None",
     )
 
     # GitHub-hosted model settings

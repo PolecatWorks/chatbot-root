@@ -170,3 +170,7 @@ curl-messages:
 
 curl-messages-post:
 	curl -X POST -H "Content-Type: application/json" -d '{"text": "Hello, world!"}' http://localhost:8080/api/messages
+
+clean:
+	rm -rf venv
+	find container-python -name "*.pyc" -exec rm -f {} \;
