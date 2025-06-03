@@ -83,6 +83,12 @@ class LangchainConfig(BaseModel):
         default="azure", description="Provider for the model: 'azure' or 'github'"
     )
 
+    httpx_verify_ssl: str | bool = Field(
+        default=True,
+        description="Whether to verify SSL certificates for HTTP requests, can be a boolean or a path to a CA bundle",
+    )
+
+
     # Azure OpenAI settings
     azure_endpoint: HttpUrl | None = Field(
         default=None, description="Azure OpenAI endpoint for LangChain"

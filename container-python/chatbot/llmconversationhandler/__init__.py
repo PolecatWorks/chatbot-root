@@ -29,7 +29,7 @@ def langchain_app_create(app: web.Application, config: ServiceConfig):
     """
     Initialize the AI client and add it to the aiohttp application context.
     """
-    httpx_client = httpx.Client()
+    httpx_client = httpx.Client(verify=config.aiclient.httpx_verify_ssl)
 
     match config.aiclient.model_provider:
         case "google_genai":
