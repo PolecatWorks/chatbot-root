@@ -81,11 +81,18 @@ class LangchainConfig(BaseModel):
     """
 
     # Azure OpenAI settings
-    azure_openai_endpoint: HttpUrl | None = Field(
+    azure_endpoint: HttpUrl | None = Field(
         default=None, description="Azure OpenAI endpoint for LangChain"
+    )
+    azure_api_key: SecretStr | None = Field(
+        default=None, description="API key for Azure OpenAI access"
     )
     azure_deployment: str | None = Field(
         default=None, description="Azure OpenAI deployment name for LangChain"
+    )
+    azure_api_version: str | None = Field(
+        default=None,
+        description="API version for Azure OpenAI, default is '2023-05-15'",
     )
 
     # GitHub-hosted model settings

@@ -39,13 +39,15 @@ def langchain_app_create(app: web.Application, config: ServiceConfig):
                 google_api_key=config.aiclient.google_api_key.get_secret_value(),
                 http_client=httpx_client,
             )
-        case "openai":
+        case "azure_openai":
             from langchain_openai import AzureChatOpenAI
 
             # https://python.langchain.com/api_reference/openai/llms/langchain_openai.llms.azure.AzureOpenAI.html#langchain_openai.llms.azure.AzureOpenAI.http_client
             model = AzureChatOpenAI(
                 model=config.aiclient.model,
-                model_name=config.aiclient.model,
+                azure_endpoint=str(config.aiclient.azure_endpoint),
+                api_version=config.aiclient.api_version,
+                api_key=config.aiclient.azure_api_key.get_secret_value(),
                 http_client=httpx_client,
             )
         case _:
