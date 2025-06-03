@@ -83,6 +83,9 @@ ${VENV}:
 	cd container-python && \
 	${POETRY} install --with dev && \
 	${PIP} install -e .[dev]
+	echo "Python venv created at ${VENV}"
+	echo "To activate the venv, run: source ${VENV}/bin/activate"
+	echo "SOMETHING is up so you will additionally need to cd container-python and run ${POETRY} install --weith dev"
 
 python-venv: ${VENV}
 
