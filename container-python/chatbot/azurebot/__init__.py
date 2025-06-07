@@ -73,9 +73,7 @@ class AzureBot(ActivityHandler):
 
     async def on_message_activity(self, turn_context: TurnContext):
 
-        logger.debug(
-            "Received message activity: %s", turn_context.activity
-        )
+        logger.debug("Received message activity: %s", turn_context.activity)
 
         # Check if the incoming message is a file attachment
         if (
@@ -89,7 +87,7 @@ class AzureBot(ActivityHandler):
                 print(
                     f"Received file attachment: {name}, type: {content_type}, URL: {content_url}"
                 )
-                print(f'Attachment: {attachment}')
+                print(f"Attachment: {attachment}")
                 # Read the file content as bytes
                 # if "http_session" not in self.app:
                 #     self.app["http_session"] = aiohttp.ClientSession()
@@ -102,9 +100,11 @@ class AzureBot(ActivityHandler):
                 await turn_context.send_activity(
                     f"Received file '{name}' (type: {content_type}). Length ({len(file_bytes)}). Base64 encoded content prepared for attachment."
                 )
-                await self.app[keys.myai].upload(turn_context.activity.conversation, name, content_type, file_bytes)
+                await self.app[keys.myai].upload(
+                    turn_context.activity.conversation, name, content_type, file_bytes
+                )
             return
-                # Optionally, you can send the base64 string or process it further here
+            # Optionally, you can send the base64 string or process it further here
 
         with self.chat_metric.labels("on_message").time():
             llm_reply = await self.app[keys.myai].chat(

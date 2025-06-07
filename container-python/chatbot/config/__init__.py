@@ -79,6 +79,7 @@ class LangchainConfig(BaseModel):
     """
     Configuration for LangChain, supporting both Azure OpenAI and GitHub-hosted models
     """
+
     model_provider: Literal["azure_openai", "github", "google_genai"] = Field(
         default="azure", description="Provider for the model: 'azure' or 'github'"
     )
@@ -87,7 +88,6 @@ class LangchainConfig(BaseModel):
         default=True,
         description="Whether to verify SSL certificates for HTTP requests, can be a boolean or a path to a CA bundle",
     )
-
 
     # Azure OpenAI settings
     azure_endpoint: HttpUrl | None = Field(
@@ -118,7 +118,7 @@ class LangchainConfig(BaseModel):
     )
     google_api_key: SecretStr | None = Field(
         default=None,
-        description="Optional API key for authenticated access to Genai model"
+        description="Optional API key for authenticated access to Genai model",
     )
 
     # Common settings

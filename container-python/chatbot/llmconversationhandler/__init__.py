@@ -35,6 +35,7 @@ def langchain_app_create(app: web.Application, config: ServiceConfig):
     match config.aiclient.model_provider:
         case "google_genai":
             from langchain_google_genai import ChatGoogleGenerativeAI
+
             model = ChatGoogleGenerativeAI(
                 model=config.aiclient.model,
                 google_api_key=config.aiclient.google_api_key.get_secret_value(),
@@ -98,7 +99,6 @@ class LLMConversationHandler:
 
         logger.debug(f"Registered tools: {[func.__name__ for func in functions]}")
 
-
     def get_conversation(self, conversation: ConversationAccount) -> List[Any]:
         if conversation.id in self.conversationContent:
             messages = self.conversationContent[conversation.id]
@@ -110,8 +110,13 @@ class LLMConversationHandler:
             self.conversationContent[conversation.id] = messages
         return messages
 
-
-    async def upload(self, conversation: ConversationAccount, name: str, mime_type: str, file_bytes: bytes) -> None:
+    async def upload(
+        self,
+        conversation: ConversationAccount,
+        name: str,
+        mime_type: str,
+        file_bytes: bytes,
+    ) -> None:
         """Uploads a file to the AI model messages.
         This method encodes the file bytes to base64 and prepares it for the AI model.
 
@@ -167,7 +172,7 @@ class LLMConversationHandler:
         # Get tool calls from the response's additional_kwargs
         while True:
             with self.llm_summary_metric.time():
-                response = self.client.invoke(messages)
+                response = await self.client.ainvoke(messages)
 
             logger.debug(f"Response from LLM: {response} is of type {type(response)}")
 

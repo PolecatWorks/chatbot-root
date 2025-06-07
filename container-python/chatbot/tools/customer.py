@@ -1,10 +1,11 @@
 import requests
 import logging
-
+from langchain_core.tools import InjectedToolArg, tool
 
 logger = logging.getLogger(__name__)
 
 
+@tool(parse_docstring=True)
 async def search_records_by_name(search_name: str) -> list[int]:
     """
     Searchs for records relating to Customers
@@ -29,6 +30,7 @@ async def search_records_by_name(search_name: str) -> list[int]:
     return [record["primary_key"] for record in data.get("results", [])]
 
 
+@tool(parse_docstring=True)
 async def delete_record_by_id(record_id: int) -> bool:
     """
     Deletes records for Customers by primary key

@@ -51,6 +51,10 @@ myai:
       max_instances: 10
     - name: multiply_numbers
       max_instances: 10
+    - name: search_records_by_name
+      max_instances: 10
+    - name: delete_record_by_id
+      max_instances: 10
 
 
 hams:

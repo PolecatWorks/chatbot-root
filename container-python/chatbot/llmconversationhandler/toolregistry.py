@@ -105,10 +105,7 @@ class ToolRegistry:
 
             # Call the function with its arguments
             with self.tool_usage_metric.labels(tool_name).time():
-                if asyncio.iscoroutinefunction(declaration.tool):
-                    result = await declaration.tool.invoke(tool_call["args"])
-                else:
-                    result = declaration.tool.invoke(tool_call["args"])
+                result = await declaration.tool.ainvoke(tool_call["args"])
 
             return ToolMessage(
                 content=result,
