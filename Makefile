@@ -13,18 +13,17 @@ BASE_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 VENV := ${BASE_DIR}venv
 PIP := ${VENV}/bin/pip
 POETRY := ${VENV}/bin/poetry
+PYTEST := ${VENV}/bin/pytest
 
 
 
 .ONESHELL:
-docker-build:
+docker-build-sample:
 	{ \
-	$(DOCKER) build container-python -t $(NAME) -f Dockerfile; \
+	$(DOCKER) build container-python -t $(NAME) -f container-python/Dockerfile; \
 	$(DOCKER) image ls $(NAME); \
 	}
 
-docker:
-	$(DOCKER)  build container-python -t $(NAME) -f container-python/Dockerfile
 
 dockerx:
 	$(DOCKER)  buildx build --push container-python -t $(REPO)/$(NAME):$(TAG) -f container-python/Dockerfile --platform linux/arm64/v8,linux/amd64
@@ -100,6 +99,11 @@ python-dev: ${VENV}
 	@echo Dev run python app
 	cd container-python && \
 	${VENV}/bin/adev runserver
+
+python-test: ${VENV}
+	@echo Running python tests
+	cd container-python && \
+	${PYTEST} -v
 
 
 python-docker:
