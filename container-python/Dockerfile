@@ -22,10 +22,12 @@ RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 WORKDIR /app
-COPY * ./
+COPY poetry.lock pyproject.toml README.md ./
+# TODO:: Consider to make a build and stage system here that would allow to install dependencies ONLY so we can speed up the package installation.
+# BUT not required for now. Just a nice to have.
 COPY chatbot chatbot
-
 RUN pip3 install .
+
 
 # Test stage - building on top of the build stage to reuse the built application
 FROM build AS test
