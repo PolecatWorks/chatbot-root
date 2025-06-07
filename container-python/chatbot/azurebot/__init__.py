@@ -20,6 +20,8 @@ from botbuilder.core import (
 )
 from chatbot.azurebot.webview import AzureBotView
 from prometheus_client import CollectorRegistry, Summary
+import base64
+import aiohttp
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -70,6 +72,39 @@ class AzureBot(ActivityHandler):
         )
 
     async def on_message_activity(self, turn_context: TurnContext):
+
+        logger.debug(
+            "Received message activity: %s", turn_context.activity
+        )
+
+        # Check if the incoming message is a file attachment
+        if (
+            turn_context.activity.attachments
+            and len(turn_context.activity.attachments) > 0
+        ):
+            for attachment in turn_context.activity.attachments:
+                content_url = attachment.content_url
+                content_type = attachment.content_type
+                name = attachment.name if hasattr(attachment, "name") else "attachment"
+                print(
+                    f"Received file attachment: {name}, type: {content_type}, URL: {content_url}"
+                )
+                print(f'Attachment: {attachment}')
+                # Read the file content as bytes
+                # if "http_session" not in self.app:
+                #     self.app["http_session"] = aiohttp.ClientSession()
+                # async with self.app["http_session"].get(content_url) as resp:
+                #     file_bytes = await resp.read()
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(content_url) as resp:
+                        file_bytes = await resp.read()
+
+                await turn_context.send_activity(
+                    f"Received file '{name}' (type: {content_type}). Length ({len(file_bytes)}). Base64 encoded content prepared for attachment."
+                )
+                await self.app[keys.myai].upload(turn_context.activity.conversation, name, content_type, file_bytes)
+            return
+                # Optionally, you can send the base64 string or process it further here
 
         with self.chat_metric.labels("on_message").time():
             llm_reply = await self.app[keys.myai].chat(
