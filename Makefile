@@ -109,6 +109,10 @@ python-test: ${VENV}
 python-docker:
 	$(DOCKER) build container-python -t $(NAME) -f container-python/Dockerfile
 
+python-docker-test:
+	$(DOCKER) build container-python -t $(NAME)-test -f container-python/Dockerfile --target test
+
+
 python-docker-run: python-docker
 	$(DOCKER) run -it --rm \
 		--name $(NAME) \
