@@ -67,6 +67,72 @@ Bots are software applications that interact with users through text-based conve
 - Use the **Bot Framework SDK** or **Teams AI Library** with Teams Toolkit to build bot capabilities.
 - AI-powered bots can leverage custom AI models for advanced features like natural language understanding.
 
+## Development Environment Setup
+
+This section describes how to set up and run the development environment for the Python application and the backend.
+
+### Python Environment
+
+**Set up the Python virtual environment:**
+
+```bash
+make python-venv
+```
+
+This command creates a virtual environment and installs the necessary Python dependencies.
+
+**Activate the virtual environment:**
+
+Before running the Python application or tests, activate the virtual environment:
+
+```bash
+source .venv/bin/activate
+```
+
+**Run the Python application:**
+
+```bash
+make python-run
+```
+
+This command runs the Python application.
+
+**Run the Python application in development mode:**
+
+```bash
+make python-dev
+```
+
+This command runs the Python application in development mode, which may include features like auto-reloading on code changes.
+
+**Run Python tests:**
+
+```bash
+make python-test
+```
+
+This command executes the Python unit tests.
+
+### Backend Environment (Watcher)
+
+The backend environment uses a watcher to monitor changes and automatically rebuild or restart the application.
+
+**Set up and run the backend in development mode:**
+
+```bash
+make watch-run
+```
+
+This command starts the backend application with a watcher that monitors for changes and rebuilds/restarts as needed.
+
+**Run backend tests with watcher:**
+
+```bash
+make watch-test
+```
+
+This command runs the backend tests with a watcher, automatically re-running tests when changes are detected.
+
 ## Setting Up Azure Components and Generating API Tokens
 
 To enable the bot to interact with the Microsoft Bot Framework, you need to set up Azure components and generate API tokens. Follow these steps:
