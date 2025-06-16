@@ -57,7 +57,10 @@ myai:
       max_instances: 10
     - name: get_weather
       max_instances: 10
-
+    mcps:
+    - name: customers
+      url: http://localhost:8002/mcp
+      transport: streamable_http
 
 hams:
   url: http://localhost:8079

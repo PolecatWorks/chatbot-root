@@ -14,22 +14,12 @@ async def connect_to_mcp_server(app):
     Establishes a connection to the MCP server
     """
 
-    client = MultiServerMCPClient(
-        {
-            # "math": {
-            #     "command": "python",
-            #     # Make sure to update to the full absolute path to your math_server.py file
-            #     "args": ["/path/to/math_server.py"],
-            #     "transport": "stdio",
-            # },
-            "customers": {
-                # make sure you start your weather server on port 8000
-                "url": "http://localhost:8002/mcp",
-                "transport": "streamable_http",
-            }
-        }
-    )
+    config: ServiceConfig = app[keys.config]
 
+    toolbox_config = config.myai.toolbox
+
+
+    client = MultiServerMCPClient({mcp.name: {"url": str(mcp.url), "transport": mcp.transport.value} for mcp in toolbox_config.mcps})
 
     tools: List[StructuredTool] = await client.get_tools()
 
