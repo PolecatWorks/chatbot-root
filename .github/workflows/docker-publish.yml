@@ -11,7 +11,7 @@ on:
     # Publish semver tags as releases.
     tags: [ 'v*.*.*' ]
     paths:
-      - 'container-python/**'
+      - 'chatbot-container/**'
       - '.github/workflows/docker-publish.yml'
   pull_request:
     branches: [ "main" ]
@@ -81,7 +81,7 @@ jobs:
         id: build-and-push
         uses: docker/build-push-action@v5 # v5.0.0
         with:
-          context: container-python
+          context: chatbot-container
           platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}

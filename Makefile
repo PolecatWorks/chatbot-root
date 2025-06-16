@@ -1,8 +1,4 @@
 
-BE_DIR=container-be
-PYTHON_DIR=container-python
-
-NAME=polecat-chatbot
 HELM_NAME=chatbot
 TAG ?= 0.3.0
 REPO ?= dockerreg.k8s:5000/polecatworks
@@ -10,10 +6,95 @@ REPO ?= dockerreg.k8s:5000/polecatworks
 DOCKER=docker
 
 BASE_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
-VENV := ${BASE_DIR}venv
-PIP := ${VENV}/bin/pip
-POETRY := ${VENV}/bin/poetry
-PYTEST := ${VENV}/bin/pytest
+
+chatbot_CMD=chatbot
+mcp_CMD=mcp
+
+chatbot_PORT=8000
+mcp_PORT=8010
+
+
+guard-%:
+	@ if [ "${${*}}" = "" ]; then \
+		echo "Environment variable $* not set"; \
+		exit 1; \
+	fi
+
+appdirs=*-container
+
+
+%-venv:
+	@echo Creating venv for $*
+	python3 -m venv $*-venv
+	$*-venv/bin/pip install --upgrade pip
+	$*-venv/bin/pip install poetry
+	cd $*-container && \
+	${BASE_DIR}$*-venv/bin/poetry install --with dev && \
+	${BASE_DIR}$*-venv/bin/pip install -e .[dev]
+
+.PRECIOUS: %-venv/bin/adev %-venv/bin/pytest
+
+%-venv/bin/adev %-venv/bin/pytest: %-venv
+	@echo creating adev for $*
+	@source $*-venv/bin/activate && cd $*-container && poetry install --with dev && pip install -e .[dev] && deactivate && cd ..
+
+
+%-run: %-venv
+	cd $*-container && \
+	${BASE_DIR}$*-venv/bin/${$*_CMD} start --secrets tests/test_data/secrets --config tests/test_data/config.yaml
+
+
+%-dev: %-venv/bin/adev
+	cd $*-container && \
+	${BASE_DIR}$*-venv/bin/adev runserver --port ${$*_PORT}
+
+%-test: %-venv/bin/pytest
+	cd $*-container && \
+	${BASE_DIR}$*-venv/bin/pytest -v
+
+
+%-docker:
+	$(DOCKER) build $*-container -t $* -f $*-container/Dockerfile
+
+%-test:
+	$(DOCKER) build $*-container -t $*-test -f $*-container/Dockerfile --target test
+
+
+%-docker-run: %-docker
+	${DOCKER} run -it --rm \
+		--name $* \
+		-v $(shell pwd)/chatbot-container/tests/test_data/secrets:/opt/app/secrets \
+		-v $(shell pwd)/chatbot-container/tests/test_data/config.yaml:/opt/app/configs/config.yaml \
+		-p 8080:${$*_PORT} -p 8079:${$*_HEALTH_PORT} \
+		$* \
+		start --secrets /opt/app/secrets --config /opt/app/configs/config.yaml
+
+
+
+
+watch-run:
+	cd ${BE_DIR} && DATABASE_URL=${DATABASE_URL} cargo watch  -x "run -- start --config test-data/config-localhost.yaml --secrets test-data/secrets"
+
+watch-app-auth:
+	cd ${BE_DIR} && DATABASE_URL=${DATABASE_URL} cargo watch  -x "run -- app-auth --config test-data/config-localhost.yaml --secrets test-data/secrets"
+
+watch-test:
+	cd ${BE_DIR} && DATABASE_URL=${DATABASE_URL} cargo watch --ignore test_data -x "test"
+
+
+terraform-init:
+	cd terraform && terraform init
+
+terraform-plan:
+	cd terraform && terraform plan
+
+terraform-apply:
+#   add TF_LOG=DEBUG to debug
+	cd terraform && terraform apply
+
+terraform-destroy:
+	cd terraform && terraform destroy
+
 
 
 
@@ -41,86 +122,6 @@ k8s-creds:
 
 
 
-guard-%:
-	@ if [ "${${*}}" = "" ]; then \
-		echo "Environment variable $* not set"; \
-		exit 1; \
-	fi
-
-local-creds:
-	@echo Creating local creds: ${DATABASE_URL}
-
-
-watch-run:
-	cd ${BE_DIR} && DATABASE_URL=${DATABASE_URL} cargo watch  -x "run -- start --config test-data/config-localhost.yaml --secrets test-data/secrets"
-
-watch-app-auth:
-	cd ${BE_DIR} && DATABASE_URL=${DATABASE_URL} cargo watch  -x "run -- app-auth --config test-data/config-localhost.yaml --secrets test-data/secrets"
-
-watch-test:
-	cd ${BE_DIR} && DATABASE_URL=${DATABASE_URL} cargo watch --ignore test_data -x "test"
-
-
-terraform-init:
-	cd terraform && terraform init
-
-terraform-plan:
-	cd terraform && terraform plan
-
-terraform-apply:
-#   add TF_LOG=DEBUG to debug
-	cd terraform && terraform apply
-
-terraform-destroy:
-	cd terraform && terraform destroy
-
-${VENV}:
-	@echo Creating python venv
-	python3 -m venv venv && \
-	${PIP} install --upgrade pip && \
-	${PIP} install poetry && \
-	cd container-python && \
-	${POETRY} install --with dev && \
-	${PIP} install -e .[dev]
-	echo "Python venv created at ${VENV}"
-	echo "To activate the venv, run: source ${VENV}/bin/activate"
-	echo "SOMETHING is up so you will additionally need to cd container-python and run ${POETRY} install --weith dev"
-
-python-venv: ${VENV}
-
-
-python-run: ${VENV}
-	@echo Running python app
-	cd container-python && \
-	${VENV}/bin/chatbot start --secrets tests/test_data/secrets --config tests/test_data/config.yaml
-
-
-python-dev: ${VENV}
-	@echo Dev run python app
-	cd container-python && \
-	${VENV}/bin/adev runserver
-
-python-test: ${VENV}
-	@echo Running python tests
-	cd container-python && \
-	${PYTEST} -v
-
-
-python-docker:
-	$(DOCKER) build container-python -t $(NAME) -f container-python/Dockerfile
-
-python-docker-test:
-	$(DOCKER) build container-python -t $(NAME)-test -f container-python/Dockerfile --target test
-
-
-python-docker-run: python-docker
-	$(DOCKER) run -it --rm \
-		--name $(NAME) \
-		-v $(shell pwd)/container-python/tests/test_data/secrets:/opt/app/secrets \
-		-v $(shell pwd)/container-python/tests/test_data/config.yaml:/opt/app/configs/config.yaml \
-		-p 8080:8080 -p 8079:8079 \
-		$(NAME) \
-		start --secrets /opt/app/secrets --config /opt/app/configs/config.yaml
 
 helm:
 	@echo Creating helm chart
@@ -183,5 +184,5 @@ curl-messages-post:
 	curl -X POST -H "Content-Type: application/json" -d '{"text": "Hello, world!"}' http://localhost:8080/api/messages
 
 clean:
-	rm -rf venv
-	find container-python -name "*.pyc" -exec rm -f {} \;
+	rm -rf *-venv
+	find *-container -name "*.pyc" -exec rm -f {} \;
