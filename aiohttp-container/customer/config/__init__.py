@@ -1,5 +1,5 @@
 from .tool import ToolBoxConfig, ToolConfig
-from pydantic import Field, BaseModel, validator
+from pydantic import Field, BaseModel
 from customer.hams.config import HamsConfig
 from pydantic import Field, BaseModel, SecretStr
 from pydantic import HttpUrl
@@ -8,7 +8,7 @@ from pydantic_file_secrets import FileSecretsSettingsSource
 from pathlib import Path
 from typing import Dict, Any, Self, List, Literal
 from datetime import timedelta
-
+from pydantic import field_validator
 
 import os
 
@@ -142,24 +142,29 @@ class LangchainConfig(BaseModel):
         default=True, description="Whether to stream responses from the model"
     )
 
-    class Config:
-        extra = "forbid"  # Prevents additional fields not defined in the model
+    model_config = {
+        "extra": "forbid"  # Prevents additional fields not defined in the model
+    }
 
-    @validator("model_provider")
+    @field_validator("model_provider")
+    @classmethod
     def validate_provider_settings(cls, v, values):
         """Validate that the required settings are present for the chosen provider"""
-        if v == "azure" and not (
-            values.get("azure_openai_endpoint") and values.get("azure_deployment")
-        ):
-            raise ValueError(
-                "Azure OpenAI settings required when model_provider is 'azure'"
-            )
-        elif v == "github" and not (
-            values.get("github_model_repo") and values.get("github_api_base_url")
-        ):
-            raise ValueError(
-                "GitHub model settings required when model_provider is 'github'"
-            )
+        if v == "azure_openai":
+            if not (values.data.get("azure_endpoint") and values.data.get("azure_deployment")):
+                raise ValueError(
+                    "Azure OpenAI settings required when model_provider is 'azure_openai'"
+                )
+        elif v == "github":
+            if not (values.data.get("github_model_repo") and values.data.get("github_api_base_url")):
+                raise ValueError(
+                    "GitHub model settings required when model_provider is 'github'"
+                )
+        elif v == "google_genai":
+            if not values.data.get("google_api_key"):
+                raise ValueError(
+                    "Google API key required when model_provider is 'google_genai'"
+                )
         return v
 
 

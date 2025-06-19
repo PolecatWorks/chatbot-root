@@ -52,6 +52,10 @@ appdirs=*-container
 	cd $*-container && \
 	${BASE_DIR}$*-venv/bin/pytest -v
 
+%-ptw: %-venv/bin/pytest
+	cd $*-container && \
+	${BASE_DIR}$*-venv/bin/ptw
+
 
 %-docker:
 	$(DOCKER) build $*-container -t $* -f $*-container/Dockerfile

@@ -2,9 +2,7 @@
 name = "customer"
 version = "0.1.0"
 description = "MCP server to provide customer interactions"
-authors = [
-    {name = "Ben Greene",email = "BenJGreene@gmail.com"}
-]
+authors = [{name = "Ben Greene",email = "BenJGreene@gmail.com"}]
 readme = "README.md"
 requires-python = ">=3.13"
 [tool.poetry.dependencies]
