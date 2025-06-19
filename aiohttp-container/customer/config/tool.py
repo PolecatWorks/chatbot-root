@@ -6,7 +6,6 @@ from enum import Enum
 
 class TransportEnum(str, Enum):
     streamable_http = 'streamable_http'
-    sse = 'sse'
 
 
 class McpConfig(BaseModel):

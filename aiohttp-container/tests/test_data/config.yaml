@@ -12,7 +12,7 @@ logging:
       level: INFO
       stream: ext://sys.stdout
   loggers:
-    chatbot.hams:
+    customer.hams:
       handlers: [console]
       level: WARNING
       propagate: False
@@ -23,8 +23,8 @@ logging:
 #   app_id: bot/id
 #   app_password: bot/passord
 webservice:
-  url: http://0.0.0.0:8080
-  prefix: pie/v0
+  url: http://127.0.0.1:8002
+  prefix: /mcp
 bot:
   app_id: "" # Disable bot authentication for dev
   app_password: "" # Disable bot authentication for dev
@@ -57,17 +57,13 @@ myai:
       max_instances: 10
     - name: get_weather
       max_instances: 10
-    - name: get_time
-      max_instances: 10
-    - name: count_calls
-      max_instances: 10
     mcps:
     - name: customers
-      url: http://localhost:8100/mcp
-      transport: sse
+      url: http://localhost:8002/mcp
+      transport: streamable_http
 
 hams:
-  url: http://localhost:8079
+  url: http://localhost:8179
   prefix: hams
   shutdownDuration: P0DT0H0M10S
   checks:

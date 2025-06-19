@@ -23,6 +23,14 @@ async def connect_to_mcp_server(app):
 
     tools: List[StructuredTool] = await client.get_tools()
 
+    resources = await client.get_resources("customers")
+    print(f"resources = {resources}")
+
+    # prompt = await client.get_prompt("customers")
+
+    # print(f"prompt = {prompt}")
+
+
     logger.info(f"MCP Client = {tools}")
 
     app[keys.mcptools]=tools
