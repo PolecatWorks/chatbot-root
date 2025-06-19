@@ -4,15 +4,18 @@ from pydantic import BaseModel, Field
 from pydantic import HttpUrl
 from enum import Enum
 
+
 class TransportEnum(str, Enum):
-    streamable_http = 'streamable_http'
-    sse = 'sse'
+    streamable_http = "streamable_http"
+    sse = "sse"
 
 
 class McpConfig(BaseModel):
     """Configuration of MCP Endpoints"""
 
-    name: str = Field(description="Name of the MCP tool, used to identify it in the system")
+    name: str = Field(
+        description="Name of the MCP tool, used to identify it in the system"
+    )
 
     url: HttpUrl = Field(description="Host to connect to for MCP")
     transport: TransportEnum
@@ -48,6 +51,4 @@ class ToolBoxConfig(BaseModel):
         description="Default maximum number of concurrent instances for tools"
     )
 
-    mcps: List[McpConfig] = Field(
-        description="MCP configuration"
-    )
+    mcps: List[McpConfig] = Field(description="MCP configuration")

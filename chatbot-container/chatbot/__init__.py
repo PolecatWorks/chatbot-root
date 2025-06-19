@@ -1,4 +1,3 @@
-
 from aiohttp import web
 from chatbot.config import ServiceConfig
 from pydantic_yaml import to_yaml_str
@@ -22,7 +21,7 @@ def app_init(app: web.Application, config: ServiceConfig):
     logger.info(f"CONFIG\n{to_yaml_str(config, indent=2)}")
 
     hams_app_create(app, config.hams)
-    mcp_app_create(app,config)
+    mcp_app_create(app, config)
     service_app_create(app, config)
     azure_app_create(app, config)
 

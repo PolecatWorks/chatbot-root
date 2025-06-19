@@ -18,8 +18,12 @@ async def connect_to_mcp_server(app):
 
     toolbox_config = config.myai.toolbox
 
-
-    client = MultiServerMCPClient({mcp.name: {"url": str(mcp.url), "transport": mcp.transport.value} for mcp in toolbox_config.mcps})
+    client = MultiServerMCPClient(
+        {
+            mcp.name: {"url": str(mcp.url), "transport": mcp.transport.value}
+            for mcp in toolbox_config.mcps
+        }
+    )
 
     tools: List[StructuredTool] = await client.get_tools()
 
@@ -30,14 +34,12 @@ async def connect_to_mcp_server(app):
 
     # print(f"prompt = {prompt}")
 
-
     logger.info(f"MCP Client = {tools}")
 
-    app[keys.mcptools]=tools
+    app[keys.mcptools] = tools
 
 
 def mcp_app_create(app: web.Application, config: ServiceConfig) -> web.Application:
-
 
     app.on_startup.append(connect_to_mcp_server)
 

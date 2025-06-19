@@ -5,6 +5,7 @@ from aiohttp_mcp import AiohttpMCP, setup_mcp_subapp
 from customer import keys
 
 import logging
+
 # Set up logging
 logger = logging.getLogger(__name__)
 
@@ -18,10 +19,8 @@ def mcp_app_create(app: web.Application, config: ServiceConfig) -> web.Applicati
     """
 
     app[keys.mcp] = mcp
-    setup_mcp_subapp(app,  app[keys.mcp], prefix="/mcp")
+    setup_mcp_subapp(app, app[keys.mcp], prefix="/mcp")
 
-    logger.info(
-        f"MCP: Initialised at /mcp"
-    )
+    logger.info(f"MCP: Initialised at /mcp")
 
     return app

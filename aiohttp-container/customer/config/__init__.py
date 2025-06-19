@@ -1,35 +1,16 @@
 from .tool import ToolBoxConfig, ToolConfig
 from pydantic import Field, BaseModel
 from customer.hams.config import HamsConfig
-from pydantic import Field, BaseModel, SecretStr
+from pydantic import Field, BaseModel, SecretStr, field_validator
 from pydantic import HttpUrl
 from pydantic_settings import BaseSettings, YamlConfigSettingsSource, SettingsConfigDict
 from pydantic_file_secrets import FileSecretsSettingsSource
 from pathlib import Path
 from typing import Dict, Any, Self, List, Literal
 from datetime import timedelta
-from pydantic import field_validator
+
 
 import os
-
-
-class BotConfig(BaseModel):
-    """
-    Configuration for the bot
-    """
-
-    api_path: str = Field(
-        default="/api/messages",
-        description="Path to the bot API",
-    )
-    app_id: str = Field(
-        # default=DefaultConfig.APP_ID,
-        description="Microsoft App ID",
-    )
-    app_password: SecretStr = Field(
-        # default=DefaultConfig.APP_PASSWORD,
-        description="Microsoft App Password",
-    )
 
 
 # TODO: Look here in future: https://github.com/pydantic/pydantic/discussions/2928#discussioncomment-4744841
@@ -75,117 +56,22 @@ class MyAiConfig(BaseModel):
     )
 
 
-class LangchainConfig(BaseModel):
-    """
-    Configuration for LangChain, supporting both Azure OpenAI and GitHub-hosted models
-    """
-
-    model_provider: Literal["azure_openai", "github", "google_genai"] = Field(
-        default="azure", description="Provider for the model: 'azure' or 'github'"
-    )
-
-    httpx_verify_ssl: str | bool = Field(
-        default=True,
-        description="Whether to verify SSL certificates for HTTP requests, can be a boolean or a path to a CA bundle",
-    )
-
-    # Azure OpenAI settings
-    azure_endpoint: HttpUrl | None = Field(
-        default=None, description="Azure OpenAI endpoint for LangChain"
-    )
-    azure_api_key: SecretStr | None = Field(
-        default=None, description="API key for Azure OpenAI access"
-    )
-    azure_deployment: str | None = Field(
-        default=None, description="Azure OpenAI deployment name for LangChain"
-    )
-    azure_api_version: str | None = Field(
-        default=None,
-        description="API version for Azure OpenAI, default is None",
-    )
-
-    # GitHub-hosted model settings
-    github_model_repo: str | None = Field(
-        default=None,
-        description="GitHub repository containing the model in owner/repo format",
-    )
-    github_api_base_url: HttpUrl | None = Field(
-        default=None, description="Base URL for the GitHub model API endpoint"
-    )
-    github_api_key: SecretStr | None = Field(
-        default=None,
-        description="Optional API key for authenticated access to GitHub model",
-    )
-    google_api_key: SecretStr | None = Field(
-        default=None,
-        description="Optional API key for authenticated access to Genai model",
-    )
-
-    # Common settings
-    model: str = Field(
-        description="The model to use (e.g., 'gemini-1.5-flash-latest' or GitHub model name)"
-    )
-    temperature: float = Field(
-        default=0.7,
-        description="Temperature for the model, controlling randomness in responses",
-    )
-    context_length: int = Field(
-        default=4096, description="Maximum context length for the model"
-    )
-    stop_sequences: List[str] = Field(
-        default_factory=list, description="List of sequences that will stop generation"
-    )
-    timeout: int = Field(
-        default=60, description="Timeout in seconds for model API calls"
-    )
-    streaming: bool = Field(
-        default=True, description="Whether to stream responses from the model"
-    )
-
-    model_config = {
-        "extra": "forbid"  # Prevents additional fields not defined in the model
-    }
-
-    @field_validator("model_provider")
-    @classmethod
-    def validate_provider_settings(cls, v, values):
-        """Validate that the required settings are present for the chosen provider"""
-        if v == "azure_openai":
-            if not (values.data.get("azure_endpoint") and values.data.get("azure_deployment")):
-                raise ValueError(
-                    "Azure OpenAI settings required when model_provider is 'azure_openai'"
-                )
-        elif v == "github":
-            if not (values.data.get("github_model_repo") and values.data.get("github_api_base_url")):
-                raise ValueError(
-                    "GitHub model settings required when model_provider is 'github'"
-                )
-        elif v == "google_genai":
-            if not values.data.get("google_api_key"):
-                raise ValueError(
-                    "Google API key required when model_provider is 'google_genai'"
-                )
-        return v
-
-
 class ServiceConfig(BaseSettings):
     """
     Configuration for the service
     """
 
     logging: Dict[str, Any] = Field(description="Logging configuration")
-    bot: BotConfig = Field(description="Bot configuration")
-    aiclient: LangchainConfig = Field(description="AI Client configuration")
     myai: MyAiConfig = Field(description="MyAI bot configuration")
 
     webservice: WebServerConfig = Field(description="Web server configuration")
     hams: HamsConfig = Field(description="Health and monitoring configuration")
     events: EventConfig = Field(description="Process costs for events")
 
-    model_config = SettingsConfigDict(
+    model_config = {
         # secrets_dir='/run/secrets',
-        secrets_nested_subdir=True,
-    )
+        "secrets_nested_subdir": True,
+    }
 
     @classmethod
     def from_yaml(cls, config_path: Path, secrets_path: Path) -> Self:

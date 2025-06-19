@@ -1,9 +1,7 @@
 from .tool import ToolBoxConfig, ToolConfig
-from pydantic import Field, BaseModel, validator
 from chatbot.hams.config import HamsConfig
-from pydantic import Field, BaseModel, SecretStr
-from pydantic import HttpUrl
-from pydantic_settings import BaseSettings, YamlConfigSettingsSource, SettingsConfigDict
+from pydantic import Field, BaseModel, SecretStr, field_validator, HttpUrl
+from pydantic_settings import BaseSettings, YamlConfigSettingsSource
 from pydantic_file_secrets import FileSecretsSettingsSource
 from pathlib import Path
 from typing import Dict, Any, Self, List, Literal
@@ -145,7 +143,8 @@ class LangchainConfig(BaseModel):
     class Config:
         extra = "forbid"  # Prevents additional fields not defined in the model
 
-    @validator("model_provider")
+    @field_validator("model_provider")
+    @classmethod
     def validate_provider_settings(cls, v, values):
         """Validate that the required settings are present for the chosen provider"""
         if v == "azure" and not (
@@ -177,10 +176,9 @@ class ServiceConfig(BaseSettings):
     hams: HamsConfig = Field(description="Health and monitoring configuration")
     events: EventConfig = Field(description="Process costs for events")
 
-    model_config = SettingsConfigDict(
-        # secrets_dir='/run/secrets',
-        secrets_nested_subdir=True,
-    )
+    model_config = {
+        "secrets_nested_subdir": True  # Prevents additional fields not defined in the model
+    }
 
     @classmethod
     def from_yaml(cls, config_path: Path, secrets_path: Path) -> Self:

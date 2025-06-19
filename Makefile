@@ -60,7 +60,7 @@ appdirs=*-container
 %-docker:
 	$(DOCKER) build $*-container -t $* -f $*-container/Dockerfile
 
-%-test:
+%-docker-test:
 	$(DOCKER) build $*-container -t $*-test -f $*-container/Dockerfile --target test
 
 

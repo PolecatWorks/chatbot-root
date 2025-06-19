@@ -2,7 +2,6 @@ import asyncio
 import logging
 
 
-
 from customer.service.state import Events
 from customer.hams import Hams, hams_app_create
 from customer.config import ServiceConfig
@@ -13,7 +12,6 @@ from aiohttp import web
 from datetime import datetime, timezone
 
 from prometheus_client import CollectorRegistry
-
 
 
 logger = logging.getLogger(__name__)

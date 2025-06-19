@@ -1,4 +1,3 @@
-
 from aiohttp import web
 from customer.config import ServiceConfig
 from pydantic_yaml import to_yaml_str

@@ -1,6 +1,7 @@
 import pytest
 from chatbot.tools.calcs import sum_numbers, multiply_numbers
 
+
 def test_sum_numbers():
     # Test with positive numbers
     assert sum_numbers.invoke({"numbers": [1, 2, 3]}) == 6
@@ -13,6 +14,7 @@ def test_sum_numbers():
 
     # Test with empty list
     assert sum_numbers.invoke({"numbers": []}) == 0
+
 
 def test_multiply_numbers():
     # Test with positive numbers

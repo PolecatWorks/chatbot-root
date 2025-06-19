@@ -2,7 +2,6 @@ import asyncio
 import logging
 
 
-
 from chatbot.service.state import Events
 from chatbot.hams import Hams, hams_app_create
 from chatbot.config import ServiceConfig
@@ -14,7 +13,6 @@ from aiohttp import web
 from datetime import datetime, timezone
 
 from prometheus_client import CollectorRegistry
-
 
 
 logger = logging.getLogger(__name__)

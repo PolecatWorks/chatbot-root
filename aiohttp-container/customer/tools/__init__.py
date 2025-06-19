@@ -12,6 +12,7 @@ mcp = AiohttpMCP(debug=False)
 
 myCount = 0
 
+
 @mcp.tool()
 def count_calls() -> int:
     """Count the number of calls made to the function"""
@@ -19,7 +20,6 @@ def count_calls() -> int:
     myCount += 1
     logger.info(f"Count the call updated to {myCount}")
     return myCount
-
 
 
 @mcp.tool()

@@ -45,7 +45,6 @@ class ToolRegistry:
     def all_tools(self) -> List[StructuredTool]:
         return [mytool.tool for mytool in self.registry.values()]
 
-
     def register_tools(self, tools: List[StructuredTool]) -> None:
         """Registers the tools with the Gemini client."""
 

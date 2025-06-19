@@ -1,6 +1,7 @@
 import pytest
 from customer.tools import count_calls, get_time
 
+
 def test_sum_numbers():
     assert True
     # Test with positive numbers

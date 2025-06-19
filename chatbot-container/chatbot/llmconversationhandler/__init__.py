@@ -42,7 +42,6 @@ async def bind_tools_when_ready(app: web.Application):
     app[keys.myai].bind_tools()
 
 
-
 def langchain_app_create(app: web.Application, config: ServiceConfig):
     """
     Initialize the AI client and add it to the aiohttp application context.
@@ -81,7 +80,6 @@ def langchain_app_create(app: web.Application, config: ServiceConfig):
     app[keys.myai].register_tools(mytools)
 
 
-
 class LLMConversationHandler:
     """
     General Interface for interacting with LLM AI.
@@ -106,12 +104,9 @@ class LLMConversationHandler:
 
         self.client = client
 
-
-
         self.conversationContent: Dict[str, Any] = {}
         # self.prometheus_registry = prometheus_registry
         self.llm_summary_metric = Summary("llm_usage", "Summary of LLM usage")
-
 
     def bind_tools(self):
 
@@ -120,7 +115,6 @@ class LLMConversationHandler:
         logger.info(f"Binding tools: {[tool.name for tool in all_tools]}")
 
         self.client = self.client.bind_tools(all_tools)
-
 
     def register_tools(self, tools: List[StructuredTool]):
         """Registers the tools with the Gemini client."""
