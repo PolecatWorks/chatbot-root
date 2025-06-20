@@ -6,6 +6,7 @@ metadata:
     {{- include "chatbot.labels" . | nindent 4 }}
 spec:
   type: {{ .Values.service.type | default "ClusterIP" }}
+  sessionAffinity: ClientIP
   ports:
     - port: {{ .Values.service.port | default 80 }}
       targetPort: http-web
