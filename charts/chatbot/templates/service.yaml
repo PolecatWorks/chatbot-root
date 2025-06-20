@@ -6,7 +6,13 @@ metadata:
     {{- include "chatbot.labels" . | nindent 4 }}
 spec:
   type: {{ .Values.service.type | default "ClusterIP" }}
-  sessionAffinity: ClientIP
+  {{- if and .Values.service.sessionAffinity (ne .Values.service.sessionAffinity "None") }}
+  sessionAffinity: {{ .Values.service.sessionAffinity }}
+  {{- if .Values.service.sessionAffinityConfig }}
+  sessionAffinityConfig:
+{{ toYaml .Values.service.sessionAffinityConfig | indent 4 }}
+  {{- end }}
+  {{- end }}
   ports:
     - port: {{ .Values.service.port | default 80 }}
       targetPort: http-web
