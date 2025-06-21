@@ -9,9 +9,6 @@ on:
   push:
     branches: [ "main" ]
     # Publish semver tags as releases.
-    paths:
-      - 'chatbot-container/**'
-      - '.github/workflows/chatbot-publish.yml'
   pull_request:
     branches: [ "main" ]
 
@@ -19,7 +16,7 @@ env:
   # Use docker.io for Docker Hub if empty
   REGISTRY: ghcr.io
   # github.repository as <account>/<repo>
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: chatbot_root
 
 
 jobs:
@@ -93,7 +90,7 @@ jobs:
       # https://github.com/docker/build-push-action
       - name: Build and push Docker image
         id: build-and-push
-        uses: docker/build-push-action@v5 # v5.0.0
+        uses: docker/build-push-action@v6
         with:
           context: chatbot-container
           platforms: linux/amd64,linux/arm64
