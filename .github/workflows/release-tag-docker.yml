@@ -1,0 +1,84 @@
+name: Tag Docker Image on Release
+
+on:
+  release:
+    types: [created]
+
+env:
+  REGISTRY: ghcr.io
+  # IMAGE_NAME will be set in the job using github.repository
+  # to ensure it's correctly formatted (lowercase)
+
+jobs:
+  tag_and_push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write # Required for cosign if we add signing later, good to have
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@17d0e2bd7d51742c71671bd19fa12bdc9d40a3d6 # v2.8.1
+        with:
+          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log into registry ${{ env.REGISTRY }}
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set Image Name
+        run: echo "IMAGE_NAME=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
+      - name: Pull, Retag, and Push Docker Image
+        run: |
+          RELEASE_TAG=${{ github.event.release.tag_name }}
+          # Ensure RELEASE_TAG is not empty
+          if [ -z "$RELEASE_TAG" ]; then
+            echo "Error: Release tag is empty. Skipping Docker tag and push."
+            exit 1
+          fi
+
+          # The image should have been built and pushed by another workflow, tagged with the commit SHA
+          # Let's assume the image name format from other workflows.
+          # We need to ensure the IMAGE_NAME is correctly cased (lowercase for ghcr.io)
+          LOWERCASE_IMAGE_NAME=$(echo "${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
+          IMAGE_SHA_TAG="${{ github.sha }}"
+
+          SOURCE_IMAGE="${{ env.REGISTRY }}/${LOWERCASE_IMAGE_NAME}:${IMAGE_SHA_TAG}"
+          TARGET_IMAGE_WITH_RELEASE_TAG="${{ env.REGISTRY }}/${LOWERCASE_IMAGE_NAME}:${RELEASE_TAG}"
+
+          echo "Attempting to pull image: ${SOURCE_IMAGE}"
+          docker pull "${SOURCE_IMAGE}"
+
+          echo "Successfully pulled ${SOURCE_IMAGE}"
+          echo "Tagging ${SOURCE_IMAGE} as ${TARGET_IMAGE_WITH_RELEASE_TAG}"
+          docker tag "${SOURCE_IMAGE}" "${TARGET_IMAGE_WITH_RELEASE_TAG}"
+
+          echo "Pushing ${TARGET_IMAGE_WITH_RELEASE_TAG}"
+          docker push "${TARGET_IMAGE_WITH_RELEASE_TAG}"
+
+          echo "Successfully tagged and pushed ${TARGET_IMAGE_WITH_RELEASE_TAG}"
+
+      # Optional: If you use cosign to sign images, you might want to sign the new tag as well.
+      # This requires cosign to be installed and configured.
+      # - name: Install cosign
+      #   uses: sigstore/cosign-installer@v3
+      #   with:
+      #     cosign-release: 'v2.2.4' # Choose a specific version
+      #
+      # - name: Sign the release Docker image
+      #   env:
+      #     COSIGN_EXPERIMENTAL: "true" # For keyless signing
+      #   run: |
+      #     LOWERCASE_IMAGE_NAME=$(echo "${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
+      #     cosign sign --yes "${{ env.REGISTRY }}/${LOWERCASE_IMAGE_NAME}:${{ github.event.release.tag_name }}"
