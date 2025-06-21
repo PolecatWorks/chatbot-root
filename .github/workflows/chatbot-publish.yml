@@ -42,11 +42,11 @@ jobs:
 
       - name: Get nearest Git tag
         id: git-tag
-        run: echo "tag=$(git describe --tags --abbrev=0 || echo '0.0.0')" >> $GITHUB_OUTPUT
+        run: echo "tag=$(git describe --tags --abbrev=0 || echo '0.0.0')" >> "$GITHUB_OUTPUT"
 
       - name: Get short SHA
         id: git-sha
-        run: echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+        run: echo "sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
 
       # Install the cosign tool except on PR
       # https://github.com/sigstore/cosign-installer
@@ -85,6 +85,7 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value={{steps.git-tag.outputs.tag}}-{{steps.git-sha.outputs.sha}}
+            type=sha,format=long
 
       # Build and push Docker image with Buildx (don't push on PR)
       # https://github.com/docker/build-push-action
