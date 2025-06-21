@@ -11,7 +11,7 @@ on:
     # Publish semver tags as releases.
     paths:
       - 'chatbot-container/**'
-      - '.github/workflows/docker-publish.yml'
+      - '.github/workflows/chatbot-publish.yml'
   pull_request:
     branches: [ "main" ]
 
