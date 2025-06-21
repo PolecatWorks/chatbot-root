@@ -57,6 +57,19 @@ securityContext: {}
 service:
   type: ClusterIP
   port: 80
+  # sessionAffinity specifies the session affinity strategy.
+  # If defined (e.g., "ClientIP"), sticky sessions are enabled.
+  # If not defined, session affinity is disabled.
+  # sessionAffinity: "ClientIP" # Example if you want to enable it
+
+  # sessionAffinityConfig holds the configuration for session affinity
+  # when sessionAffinity is set (e.g., to "ClientIP").
+  # This field is optional and should only be defined if needed.
+  # Example for ClientIP:
+  # sessionAffinityConfig:
+  #   clientIP:
+  #     timeoutSeconds: 10800
+  # sessionAffinityConfig: {} # Ensure this is effectively removed or commented
 
 
 resources: {}
