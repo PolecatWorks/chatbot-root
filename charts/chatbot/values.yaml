@@ -64,11 +64,12 @@ service:
 
   # sessionAffinityConfig holds the configuration for session affinity
   # when sessionAffinity is set (e.g., to "ClientIP").
+  # This field is optional and should only be defined if needed.
   # Example for ClientIP:
   # sessionAffinityConfig:
   #   clientIP:
   #     timeoutSeconds: 10800
-  sessionAffinityConfig: {}
+  # sessionAffinityConfig: {} # Ensure this is effectively removed or commented
 
 
 resources: {}
