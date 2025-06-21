@@ -6,7 +6,7 @@ metadata:
     {{- include "chatbot.labels" . | nindent 4 }}
 spec:
   type: {{ .Values.service.type | default "ClusterIP" }}
-  {{- if and .Values.service.sessionAffinity (ne .Values.service.sessionAffinity "None") }}
+  {{- if .Values.service.sessionAffinity }}
   sessionAffinity: {{ .Values.service.sessionAffinity }}
   {{- if .Values.service.sessionAffinityConfig }}
   sessionAffinityConfig:
