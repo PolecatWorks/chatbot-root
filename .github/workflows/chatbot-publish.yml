@@ -9,7 +9,6 @@ on:
   push:
     branches: [ "main" ]
     # Publish semver tags as releases.
-    tags: [ 'v*.*.*' ]
     paths:
       - 'chatbot-container/**'
       - '.github/workflows/docker-publish.yml'
