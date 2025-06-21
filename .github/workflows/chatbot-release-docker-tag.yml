@@ -6,6 +6,8 @@ on:
 
 env:
   REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
   # IMAGE_NAME will be set in the job using github.repository
   # to ensure it's correctly formatted (lowercase)
 
@@ -19,7 +21,7 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@17d0e2bd7d51742c71671bd19fa12bdc9d40a3d6 # v2.8.1
+        uses: step-security/harden-runner@v2
         with:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
@@ -36,9 +38,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set Image Name
-        run: echo "IMAGE_NAME=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
-
       - name: Pull, Retag, and Push Docker Image
         run: |
           RELEASE_TAG=${{ github.event.release.tag_name }}
@@ -51,11 +50,10 @@ jobs:
           # The image should have been built and pushed by another workflow, tagged with the commit SHA
           # Let's assume the image name format from other workflows.
           # We need to ensure the IMAGE_NAME is correctly cased (lowercase for ghcr.io)
-          LOWERCASE_IMAGE_NAME=$(echo "${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
-          IMAGE_SHA_TAG="${{ github.sha }}"
+          IMAGE_SHA_TAG="sha-${{ github.sha }}"
 
-          SOURCE_IMAGE="${{ env.REGISTRY }}/${LOWERCASE_IMAGE_NAME}:${IMAGE_SHA_TAG}"
-          TARGET_IMAGE_WITH_RELEASE_TAG="${{ env.REGISTRY }}/${LOWERCASE_IMAGE_NAME}:${RELEASE_TAG}"
+          SOURCE_IMAGE="${{ env.REGISTRY }}/${{env.IMAGE_NAME}}:${IMAGE_SHA_TAG}"
+          TARGET_IMAGE_WITH_RELEASE_TAG="${{ env.REGISTRY }}/${{env.IMAGE_NAME}}:${RELEASE_TAG}"
 
           echo "Attempting to pull image: ${SOURCE_IMAGE}"
           docker pull "${SOURCE_IMAGE}"
