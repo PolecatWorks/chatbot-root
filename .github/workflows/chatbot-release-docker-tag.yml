@@ -6,7 +6,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+
 
   # IMAGE_NAME will be set in the job using github.repository
   # to ensure it's correctly formatted (lowercase)
@@ -50,15 +50,17 @@ jobs:
           # The image should have been built and pushed by another workflow, tagged with the commit SHA
           # Let's assume the image name format from other workflows.
           # We need to ensure the IMAGE_NAME is correctly cased (lowercase for ghcr.io)
+
+          IMAGE_NAME=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')
+
           IMAGE_SHA_TAG="sha-${{ github.sha }}"
 
-          SOURCE_IMAGE="${{ env.REGISTRY }}/${{env.IMAGE_NAME}}:${IMAGE_SHA_TAG}"
-          TARGET_IMAGE_WITH_RELEASE_TAG="${{ env.REGISTRY }}/${{env.IMAGE_NAME}}:${RELEASE_TAG}"
+          SOURCE_IMAGE="${{ env.REGISTRY }}/${MAGE_NAME}:${IMAGE_SHA_TAG}" )
+          TARGET_IMAGE_WITH_RELEASE_TAG="${{ env.REGISTRY }}/${IMAGE_NAME}:${RELEASE_TAG}"
 
           echo "Attempting to pull image: ${SOURCE_IMAGE}"
           docker pull "${SOURCE_IMAGE}"
 
-          echo "Successfully pulled ${SOURCE_IMAGE}"
           echo "Tagging ${SOURCE_IMAGE} as ${TARGET_IMAGE_WITH_RELEASE_TAG}"
           docker tag "${SOURCE_IMAGE}" "${TARGET_IMAGE_WITH_RELEASE_TAG}"
 
