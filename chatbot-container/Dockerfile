@@ -38,6 +38,11 @@ COPY tests ./tests
 RUN poetry run pytest tests/ && touch /app/tests/.test_success
 
 FROM base AS publish
+LABEL org.opencontainers.image.title="Chatbot root"
+LABEL org.opencontainers.image.description="Chatbot root for Azure chatbot integration"
+LABEL org.opencontainers.image.authors="Ben Greene <BenJGreene@gmail.com>"
+LABEL org.opencontainers.image.source="https://github.com/polecatworks/chatbot_root"
+LABEL org.opencontainers.image.created="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
 EXPOSE 8080 8079
 COPY --from=test /app/tests/.test_success /app/tests/.test_success
 COPY --from=build /opt/venv /opt/venv
