@@ -48,12 +48,26 @@ jobs:
 
           IMAGE_NAME=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')
 
-          IMAGE_SHA_TAG="sha-${{ github.sha }}"
+          SOURCE_SHA_TAG="sha-${{ github.sha }}"
+          IMAGE_BASE="${{ env.REGISTRY }}/${IMAGE_NAME}"
 
-          SOURCE_IMAGE="${{ env.REGISTRY }}/${IMAGE_NAME}:${IMAGE_SHA_TAG}"
-          TARGET_IMAGE_WITH_RELEASE_TAG="${{ env.REGISTRY }}/${IMAGE_NAME}:${RELEASE_TAG}"
+          crane copy "${IMAGE_BASE}:${SOURCE_SHA_TAG}" "${IMAGE_BASE}:${RELEASE_TAG}"
 
-          echo "Planning tagging of: ${SOURCE_IMAGE} as ${TARGET_IMAGE_WITH_RELEASE_TAG}"
 
-          crane copy "${SOURCE_IMAGE}" "${TARGET_IMAGE_WITH_RELEASE_TAG}"
-          echo "Successfully tagged ${SOURCE_IMAGE} as ${TARGET_IMAGE_WITH_RELEASE_TAG}"
+      # - name: Update GitHub Release with Docker Image Info
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   run: |
+      #     RELEASE_TAG=${{ github.event.release.tag_name }}
+      #     IMAGE_NAME=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')
+      #     IMAGE_URI="${{ env.REGISTRY }}/${IMAGE_NAME}:${RELEASE_TAG}"
+
+      #     RELEASE_ID=$(gh api repos/${{ github.repository }}/releases/tags/${RELEASE_TAG} --jq '.id')
+      #     BODY="Docker image available at \`${IMAGE_URI}\`"
+
+      #     gh api \
+      #   --method PATCH \
+      #   -H "Accept: application/vnd.github+json" \
+      #   /repos/${{ github.repository }}/releases/${RELEASE_ID} \
+      #   -f body="$(gh api repos/${{ github.repository }}/releases/${RELEASE_ID} --jq '.body')\n\n${BODY}"
+      #   shell: bash
