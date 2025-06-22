@@ -67,13 +67,13 @@ jobs:
             crane copy "${IMAGE_BASE_MCP}:${SOURCE_SHA_TAG}" "${IMAGE_BASE_MCP}:${MINOR}"
 
           else
-            echo "Release tag $RELEASE_TAG is not semver (vMAJOR.MINOR.PATCH). Skipping major/minor tags."
+            echo "Release tag $RELEASE_TAG is not semver (MAJOR.MINOR.PATCH). Skipping major/minor tags."
             MAJOR=""
             MINOR=""
           fi
 
-          echo "IMAGE_DIGEST_CHATBOT=$(crane digest "${IMAGE_BASE_CHATBOT}:${SOURCE_SHA_TAG})" >> $GITHUB_OUTPUT
-          echo "IMAGE_DIGEST_MCP=$(crane digest "${IMAGE_BASE_MCP}:${SOURCE_SHA_TAG})" >> $GITHUB_OUTPUT
+          echo "IMAGE_DIGEST_CHATBOT=$(crane digest ${IMAGE_BASE_CHATBOT}:${SOURCE_SHA_TAG})" >> $GITHUB_OUTPUT
+          echo "IMAGE_DIGEST_MCP=$(crane digest ${IMAGE_BASE_MCP}:${SOURCE_SHA_TAG})" >> $GITHUB_OUTPUT
 
 
       - name: "Build Changelog"
