@@ -49,16 +49,22 @@ jobs:
           IMAGE_NAME=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')
 
           SOURCE_SHA_TAG="sha-${{ github.sha }}"
-          IMAGE_BASE="${{ env.REGISTRY }}/${IMAGE_NAME}"
+          IMAGE_BASE_CHATBOT="${{ env.REGISTRY }}/${IMAGE_NAME}"
+          IMAGE_BASE_MCP="${{ env.REGISTRY }}/${IMAGE_NAME}-aiohttp-mcp"
 
-          crane copy "${IMAGE_BASE}:${SOURCE_SHA_TAG}" "${IMAGE_BASE}:${RELEASE_TAG}"
+          crane copy "${IMAGE_BASE_CHATBOT}:${SOURCE_SHA_TAG}" "${IMAGE_BASE_CHATBOT}:${RELEASE_TAG}"
+          crane copy "${IMAGE_BASE_MCP}:${SOURCE_SHA_TAG}" "${IMAGE_BASE_MCP}:${RELEASE_TAG}"
 
           # Extract major and minor versions from the semver tag (e.g., v1.2.3)
           if [[ "$RELEASE_TAG" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+) ]]; then
             MAJOR="${BASH_REMATCH[1]}"
-            crane copy "${IMAGE_BASE}:${SOURCE_SHA_TAG}" "${IMAGE_BASE}:${MAJOR}"
+            crane copy "${IMAGE_BASE_CHATBOT}:${SOURCE_SHA_TAG}" "${IMAGE_BASE_CHATBOT}:${MAJOR}"
+            crane copy "${IMAGE_BASE_MCP}:${SOURCE_SHA_TAG}" "${IMAGE_BASE_MCP}:${MAJOR}"
+
             MINOR="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
-            crane copy "${IMAGE_BASE}:${SOURCE_SHA_TAG}" "${IMAGE_BASE}:${MINOR}"
+            crane copy "${IMAGE_BASE_CHATBOT}:${SOURCE_SHA_TAG}" "${IMAGE_BASE_CHATBOT}:${MINOR}"
+            crane copy "${IMAGE_BASE_MCP}:${SOURCE_SHA_TAG}" "${IMAGE_BASE_MCP}:${MINOR}"
+
           else
             echo "Release tag $RELEASE_TAG is not semver (vMAJOR.MINOR.PATCH). Skipping major/minor tags."
             MAJOR=""
