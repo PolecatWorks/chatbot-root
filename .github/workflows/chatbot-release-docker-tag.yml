@@ -20,29 +20,18 @@ jobs:
       id-token: write # Required for cosign if we add signing later, good to have
 
     steps:
-
-      - name: Set up crane
-        uses: imjasonh/setup-crane@v0.1 # Or another installer like iarekylew00t/crane-installer@v3
+      - uses: actions/setup-go@v2
         with:
-          version: latest # Or a specific version like v0.17.0
-
+          go-version: 1.15
 
       - name: Checkout repository
         uses: actions/checkout@v4
 
-
-
-      - name: Set up crane
-        uses: imjasonh/setup-crane@v0.1 # Or another installer like iarekylew00t/crane-installer@v3
-        with:
-          version: latest # Or a specific version like v0.17.0
-
+      - uses: imjasonh/setup-crane@v0.1
 
       - name: Login to GHCR
         run: |
           echo "${{ github.token }}" | crane auth login ghcr.io --username ${{ github.actor }} --password-stdin
-
-
 
       - name: Pull, Retag, and Push Docker Image
         run: |
