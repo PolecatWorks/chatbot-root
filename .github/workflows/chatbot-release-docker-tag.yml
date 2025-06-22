@@ -53,21 +53,14 @@ jobs:
 
           crane copy "${IMAGE_BASE}:${SOURCE_SHA_TAG}" "${IMAGE_BASE}:${RELEASE_TAG}"
 
-
-      # - name: Update GitHub Release with Docker Image Info
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   run: |
-      #     RELEASE_TAG=${{ github.event.release.tag_name }}
-      #     IMAGE_NAME=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')
-      #     IMAGE_URI="${{ env.REGISTRY }}/${IMAGE_NAME}:${RELEASE_TAG}"
-
-      #     RELEASE_ID=$(gh api repos/${{ github.repository }}/releases/tags/${RELEASE_TAG} --jq '.id')
-      #     BODY="Docker image available at \`${IMAGE_URI}\`"
-
-      #     gh api \
-      #   --method PATCH \
-      #   -H "Accept: application/vnd.github+json" \
-      #   /repos/${{ github.repository }}/releases/${RELEASE_ID} \
-      #   -f body="$(gh api repos/${{ github.repository }}/releases/${RELEASE_ID} --jq '.body')\n\n${BODY}"
-      #   shell: bash
+          # Extract major and minor versions from the semver tag (e.g., v1.2.3)
+          if [[ "$RELEASE_TAG" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+) ]]; then
+            MAJOR="${BASH_REMATCH[1]}"
+            crane copy "${IMAGE_BASE}:${SOURCE_SHA_TAG}" "${IMAGE_BASE}:${MAJOR}"
+            MINOR="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
+            crane copy "${IMAGE_BASE}:${SOURCE_SHA_TAG}" "${IMAGE_BASE}:${MINOR}"
+          else
+            echo "Release tag $RELEASE_TAG is not semver (vMAJOR.MINOR.PATCH). Skipping major/minor tags."
+            MAJOR=""
+            MINOR=""
+          fi
