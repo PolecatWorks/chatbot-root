@@ -55,7 +55,7 @@ jobs:
 
           IMAGE_SHA_TAG="sha-${{ github.sha }}"
 
-          SOURCE_IMAGE="${{ env.REGISTRY }}/${MAGE_NAME}:${IMAGE_SHA_TAG}" )
+          SOURCE_IMAGE="${{ env.REGISTRY }}/${MAGE_NAME}:${IMAGE_SHA_TAG}"
           TARGET_IMAGE_WITH_RELEASE_TAG="${{ env.REGISTRY }}/${IMAGE_NAME}:${RELEASE_TAG}"
 
           echo "Attempting to pull image: ${SOURCE_IMAGE}"
