@@ -15,7 +15,7 @@ jobs:
   tag_and_push:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       packages: write
       id-token: write # Required for cosign if we add signing later, good to have
 
