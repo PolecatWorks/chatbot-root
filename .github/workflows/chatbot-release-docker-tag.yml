@@ -20,23 +20,29 @@ jobs:
       id-token: write # Required for cosign if we add signing later, good to have
 
     steps:
-      - name: Harden Runner
-        uses: step-security/harden-runner@v2
+
+      - name: Set up crane
+        uses: imjasonh/setup-crane@v0.1 # Or another installer like iarekylew00t/crane-installer@v3
         with:
-          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+          version: latest # Or a specific version like v0.17.0
+
 
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
 
-      - name: Log into registry ${{ env.REGISTRY }}
-        uses: docker/login-action@v3
+
+      - name: Set up crane
+        uses: imjasonh/setup-crane@v0.1 # Or another installer like iarekylew00t/crane-installer@v3
         with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          version: latest # Or a specific version like v0.17.0
+
+
+      - name: Login to GHCR
+        run: |
+          echo "${{ github.token }}" | crane auth login ghcr.io --username ${{ github.actor }} --password-stdin
+
+
 
       - name: Pull, Retag, and Push Docker Image
         run: |
@@ -58,27 +64,7 @@ jobs:
           SOURCE_IMAGE="${{ env.REGISTRY }}/${IMAGE_NAME}:${IMAGE_SHA_TAG}"
           TARGET_IMAGE_WITH_RELEASE_TAG="${{ env.REGISTRY }}/${IMAGE_NAME}:${RELEASE_TAG}"
 
-          echo "Attempting to pull image: ${SOURCE_IMAGE}"
-          docker pull "${SOURCE_IMAGE}"
+          echo "Planning tagging of: ${SOURCE_IMAGE} as ${TARGET_IMAGE_WITH_RELEASE_TAG}"
 
-          echo "Tagging ${SOURCE_IMAGE} as ${TARGET_IMAGE_WITH_RELEASE_TAG}"
-          docker tag "${SOURCE_IMAGE}" "${TARGET_IMAGE_WITH_RELEASE_TAG}"
-
-          echo "Pushing ${TARGET_IMAGE_WITH_RELEASE_TAG}"
-          docker push "${TARGET_IMAGE_WITH_RELEASE_TAG}"
-
-          echo "Successfully tagged and pushed ${TARGET_IMAGE_WITH_RELEASE_TAG}"
-
-      # Optional: If you use cosign to sign images, you might want to sign the new tag as well.
-      # This requires cosign to be installed and configured.
-      # - name: Install cosign
-      #   uses: sigstore/cosign-installer@v3
-      #   with:
-      #     cosign-release: 'v2.2.4' # Choose a specific version
-      #
-      # - name: Sign the release Docker image
-      #   env:
-      #     COSIGN_EXPERIMENTAL: "true" # For keyless signing
-      #   run: |
-      #     LOWERCASE_IMAGE_NAME=$(echo "${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
-      #     cosign sign --yes "${{ env.REGISTRY }}/${LOWERCASE_IMAGE_NAME}:${{ github.event.release.tag_name }}"
+          crane copy "${SOURCE_IMAGE}" "${TARGET_IMAGE_WITH_RELEASE_TAG}"
+          echo "Successfully tagged ${SOURCE_IMAGE} as ${TARGET_IMAGE_WITH_RELEASE_TAG}"
