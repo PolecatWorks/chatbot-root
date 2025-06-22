@@ -47,13 +47,18 @@ jobs:
 
           # The image should have been built and pushed by another workflow, tagged with the commit SHA
           # Let's assume the image name format from other workflows.
-          # We need to ensure the IMAGE_NAME is correctly cased (lowercase for ghcr.io)
+          # We need to ensure the REPO_NAME is correctly cased (lowercase for ghcr.io)
 
-          IMAGE_NAME=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')
+          REPO_NAME=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')
+
 
           SOURCE_SHA_TAG="sha-${{ github.sha }}"
-          IMAGE_BASE_CHATBOT="${{ env.REGISTRY }}/${IMAGE_NAME}"
-          IMAGE_BASE_MCP="${{ env.REGISTRY }}/${IMAGE_NAME}-aiohttp-mcp"
+          IMAGE_BASE_CHATBOT="${{ env.REGISTRY }}/${REPO_NAME}"
+          IMAGE_BASE_MCP="${{ env.REGISTRY }}/${REPO_NAME}-aiohttp-mcp"
+          echo "IMAGE_BASE_CHATBOT=${IMAGE_BASE_CHATBOT}" >> $GITHUB_OUTPUT
+          echo "IMAGE_BASE_MCP=${IMAGE_BASE_MCP}" >> $GITHUB_OUTPUT
+
+
 
           crane copy "${IMAGE_BASE_CHATBOT}:${SOURCE_SHA_TAG}" "${IMAGE_BASE_CHATBOT}:${RELEASE_TAG}"
           crane copy "${IMAGE_BASE_MCP}:${SOURCE_SHA_TAG}" "${IMAGE_BASE_MCP}:${RELEASE_TAG}"
@@ -105,7 +110,8 @@ jobs:
         id: prepare_additional_body
         run: |
           RELEASE_TAG="${{ github.event.release.tag_name }}"
-          IMAGE_NAME_FULL="ghcr.io/${{ github.repository }}"
+          IMAGE_NAME_CHATBOT="${{ steps.get_image_info.outputs.IMAGE_NAME_CHATBOT }}"
+          IMAGE_NAME_MCP="${{ steps.get_image_info.outputs.IMAGE_NAME_MCP }}"
           IMAGE_DIGEST_CHATBOT="${{ steps.get_image_info.outputs.IMAGE_DIGEST_CHATBOT }}"
           IMAGE_DIGEST_MCP="${{ steps.get_image_info.outputs.IMAGE_DIGEST_MCP }}"
           CHANGELOG_BODY="${{ steps.build_changelog.outputs.changelog }}" # This might be empty if no config
@@ -116,13 +122,17 @@ jobs:
 
           ## Docker Image
 
-          The Docker image for this release is available at:
+          The Docker images for this release are available at:
 
-          \`${IMAGE_NAME_FULL}:${RELEASE_TAG}\`
+          \`${IMAGE_NAME_CHATBOT}:${RELEASE_TAG}\`
+          \`${IMAGE_NAME_MCP}:${RELEASE_TAG}\`
 
           **Pull Command:**
           \`\`\`bash
-          docker pull ${IMAGE_NAME_FULL}:${RELEASE_TAG}
+          docker pull ${IMAGE_NAME_CHATBOT}:${RELEASE_TAG}
+          \`\`\`
+          \`\`\`bash
+          docker pull ${IMAGE_NAME_MCP}:${RELEASE_TAG}
           \`\`\`
 
           **Run Command Example:**
@@ -131,9 +141,11 @@ jobs:
           \`\`\`
 
           **Chatbot Image Digest (for immutable reference):**
-          \`sha256:${IMAGE_DIGEST_CHATBOT}\`
+          \`${IMAGE_DIGEST_CHATBOT}\`
+          \`${IMAGE_DIGEST_MCP}\`
 
-          [Link to GHCR Packages Page](https://github.com/${{ github.repository }}/pkgs/container/${{ github.event.repository.name }})
+          [Link to Chatbot GHCR Packages Page](https://github.com/${{ github.repository }}/pkgs/container/${{ github.event.repository.name }})
+          [Link to MCP GHCR Packages Page](https://github.com/${{ github.repository }}/pkgs/container/${{ github.event.repository.name }}-aiohttp-mcp)
           EOF
           )
           # Store the content to be appended
