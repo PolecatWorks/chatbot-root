@@ -75,6 +75,16 @@ jobs:
           echo "IMAGE_DIGEST_CHATBOT=$(crane digest ${IMAGE_BASE_CHATBOT}:${SOURCE_SHA_TAG})" >> $GITHUB_OUTPUT
           echo "IMAGE_DIGEST_MCP=$(crane digest ${IMAGE_BASE_MCP}:${SOURCE_SHA_TAG})" >> $GITHUB_OUTPUT
 
+      - name: Get Previous Tag
+        id: get_previous_tag
+        run: |
+          PREV_TAG=$(git tag --sort=-creatordate | grep -v "^${{ github.event.release.tag_name }}$" | head -n 1)
+          if [ -z "$PREV_TAG" ]; then
+          echo "No previous tag found."
+          PREV_TAG=""
+            fi
+            echo "PREV_TAG=$PREV_TAG" >> $GITHUB_OUTPUT
+
 
       - name: "Build Changelog"
         id: build_changelog
@@ -84,10 +94,9 @@ jobs:
           repo: ${{ github.event.repository.name }}
           token: ${{ secrets.GITHUB_TOKEN }}
           failOnError: true
-          fromTag: ${{ github.event.release.target_commitish }} # Usually the branch the release was made from
+          fromTag: ${{ steps.get_previous_tag.outputs.PREV_TAG }}
+          # fromTag: ${{ github.event.release.target_commitish }} # Usually the branch the release was made from
           toTag: ${{ github.event.release.tag_name }}
-
-
 
 
       - name: Prepare Additional Release Body Content
