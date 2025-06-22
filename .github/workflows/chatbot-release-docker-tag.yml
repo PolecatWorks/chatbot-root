@@ -34,6 +34,7 @@ jobs:
           echo "${{ github.token }}" | crane auth login ghcr.io --username ${{ github.actor }} --password-stdin
 
       - name: Pull, Retag, and Push Docker Image
+        id: get_image_info
         run: |
           RELEASE_TAG=${{ github.event.release.tag_name }}
           # Ensure RELEASE_TAG is not empty
@@ -70,3 +71,81 @@ jobs:
             MAJOR=""
             MINOR=""
           fi
+
+          echo "IMAGE_DIGEST_CHATBOT=$(crane digest "${IMAGE_BASE_CHATBOT}:${SOURCE_SHA_TAG})" >> $GITHUB_OUTPUT
+          echo "IMAGE_DIGEST_MCP=$(crane digest "${IMAGE_BASE_MCP}:${SOURCE_SHA_TAG})" >> $GITHUB_OUTPUT
+
+
+      - name: "Build Changelog"
+        id: build_changelog
+        uses: mikepenz/release-changelog-builder-action@v5
+        with:
+          owner: ${{ github.repository_owner }}
+          repo: ${{ github.event.repository.name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          failOnError: true
+          fromTag: ${{ github.event.release.target_commitish }} # Usually the branch the release was made from
+          toTag: ${{ github.event.release.tag_name }}
+
+
+
+
+      - name: Prepare Additional Release Body Content
+        id: prepare_additional_body
+        run: |
+          RELEASE_TAG="${{ github.event.release.tag_name }}"
+          IMAGE_NAME_FULL="ghcr.io/${{ github.repository }}"
+          IMAGE_DIGEST_CHATBOT="${{ steps.get_image_info.outputs.IMAGE_DIGEST_CHATBOT }}"
+          IMAGE_DIGEST_MCP="${{ steps.get_image_info.outputs.IMAGE_DIGEST_MCP }}"
+          CHANGELOG_BODY="${{ steps.build_changelog.outputs.changelog }}" # This might be empty if no config
+
+          # Construct the additional release notes markdown for Docker info
+          ADDITIONAL_BODY=$(cat <<EOF
+          ---
+
+          ## Docker Image
+
+          The Docker image for this release is available at:
+
+          \`${IMAGE_NAME_FULL}:${RELEASE_TAG}\`
+
+          **Pull Command:**
+          \`\`\`bash
+          docker pull ${IMAGE_NAME_FULL}:${RELEASE_TAG}
+          \`\`\`
+
+          **Run Command Example:**
+          \`\`\`bash
+          docker run -d -p 8080:8080 ${IMAGE_NAME_FULL}:${RELEASE_TAG}
+          \`\`\`
+
+          **Chatbot Image Digest (for immutable reference):**
+          \`sha256:${IMAGE_DIGEST_CHATBOT}\`
+
+          [Link to GHCR Packages Page](https://github.com/${{ github.repository }}/pkgs/container/${{ github.event.repository.name }})
+          EOF
+          )
+          # Store the content to be appended
+          echo "ADDITIONAL_BODY<<EOF" >> $GITHUB_OUTPUT
+          echo "${ADDITIONAL_BODY}" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Update GitHub Release Body
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.release.tag_name }}
+          # Use github.event.release.body for existing content
+          # Then append your new Docker info.
+          body: |
+            ${{ github.event.release.body }}
+            ${{ steps.prepare_additional_body.outputs.ADDITIONAL_BODY }}
+          draft: ${{ github.event.release.draft }}
+          prerelease: ${{ github.event.release.prerelease }}
+          # If you want to update existing assets or add new ones, specify here
+          # assets: |
+          #   ./dist/your-app-binary
+          #   ./docker-compose.yml
+          # edit_mode: replace # Use 'replace' if you want to completely overwrite the body
+          # if not using replace, the body will be appended as above
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
