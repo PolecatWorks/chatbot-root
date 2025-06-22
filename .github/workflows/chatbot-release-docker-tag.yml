@@ -145,6 +145,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event.release.tag_name }}
+          token: ${{ github.token }}
           # Use github.event.release.body for existing content
           # Then append your new Docker info.
           body: |
@@ -159,4 +160,4 @@ jobs:
           # edit_mode: replace # Use 'replace' if you want to completely overwrite the body
           # if not using replace, the body will be appended as above
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
