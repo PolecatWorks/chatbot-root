@@ -110,8 +110,8 @@ jobs:
         id: prepare_additional_body
         run: |
           RELEASE_TAG="${{ github.event.release.tag_name }}"
-          IMAGE_NAME_CHATBOT="${{ steps.get_image_info.outputs.IMAGE_NAME_CHATBOT }}"
-          IMAGE_NAME_MCP="${{ steps.get_image_info.outputs.IMAGE_NAME_MCP }}"
+          IMAGE_BASE_CHATBOT="${{ steps.get_image_info.outputs.IMAGE_BASE_CHATBOT }}"
+          IMAGE_BASE_MCP="${{ steps.get_image_info.outputs.IMAGE_BASE_MCP }}"
           IMAGE_DIGEST_CHATBOT="${{ steps.get_image_info.outputs.IMAGE_DIGEST_CHATBOT }}"
           IMAGE_DIGEST_MCP="${{ steps.get_image_info.outputs.IMAGE_DIGEST_MCP }}"
           CHANGELOG_BODY="${{ steps.build_changelog.outputs.changelog }}" # This might be empty if no config
@@ -124,25 +124,24 @@ jobs:
 
           The Docker images for this release are available at:
 
-          \`${IMAGE_NAME_CHATBOT}:${RELEASE_TAG}\`
-          \`${IMAGE_NAME_MCP}:${RELEASE_TAG}\`
+          \`${IMAGE_BASE_CHATBOT}:${RELEASE_TAG}\`
+          \`${IMAGE_DIGEST_CHATBOT}\`
+
+          \`${IMAGE_BASE_MCP}:${RELEASE_TAG}\`
+          \`${IMAGE_DIGEST_MCP}\`
 
           **Pull Command:**
           \`\`\`bash
-          docker pull ${IMAGE_NAME_CHATBOT}:${RELEASE_TAG}
+          docker pull ${IMAGE_BASE_CHATBOT}:${RELEASE_TAG}
           \`\`\`
           \`\`\`bash
-          docker pull ${IMAGE_NAME_MCP}:${RELEASE_TAG}
+          docker pull ${IMAGE_BASE_MCP}:${RELEASE_TAG}
           \`\`\`
 
           **Run Command Example:**
           \`\`\`bash
           docker run -d -p 8080:8080 ${IMAGE_NAME_FULL}:${RELEASE_TAG}
           \`\`\`
-
-          **Chatbot Image Digest (for immutable reference):**
-          \`${IMAGE_DIGEST_CHATBOT}\`
-          \`${IMAGE_DIGEST_MCP}\`
 
           [Link to Chatbot GHCR Packages Page](https://github.com/${{ github.repository }}/pkgs/container/${{ github.event.repository.name }})
           [Link to MCP GHCR Packages Page](https://github.com/${{ github.repository }}/pkgs/container/${{ github.event.repository.name }}-aiohttp-mcp)
