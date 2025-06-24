@@ -22,6 +22,8 @@ from chatbot.tools import mytools
 from langchain.chat_models import init_chat_model
 import httpx
 
+from langgraph.graph import StatefulGraph, END
+from .graph_state import GraphState
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -108,6 +110,69 @@ class LLMConversationHandler:
         # self.prometheus_registry = prometheus_registry
         self.llm_summary_metric = Summary("llm_usage", "Summary of LLM usage")
 
+        # Initialize the graph
+        workflow = StatefulGraph(GraphState)
+        workflow.add_node("call_llm", self._call_llm)
+        workflow.add_node("call_tool", self._call_tool)
+
+        # Set the entrypoint
+        workflow.set_entry_point("call_llm")
+
+        # Add edges
+        workflow.add_conditional_edges(
+            "call_llm",
+            self._should_call_tool,
+            {
+                "call_tool": "call_tool",
+                "__end__": END,
+            },
+        )
+        workflow.add_edge("call_tool", "call_llm")
+
+        self.graph = workflow.compile()
+
+    async def _call_llm(self, state: GraphState) -> dict:
+        """
+        Node to call the language model.
+        """
+        messages = state["messages"]
+        with self.llm_summary_metric.time():
+            response = await self.client.ainvoke(messages)
+        # The response from ainvoke is already an AIMessage if no tool calls,
+        # or an AIMessage with tool_calls if tools are called.
+        # We append it to the list of messages to be included in the state.
+        return {"messages": messages + [response]}
+
+    async def _call_tool(self, state: GraphState) -> dict:
+        """
+        Node to execute tool calls.
+        """
+        messages = state["messages"]
+        last_message = messages[-1]
+        if not isinstance(last_message, AIMessage) or not last_message.tool_calls:
+            # Should not happen if routed correctly
+            logger.warning("Call tool node received state without tool calls.")
+            return {}
+
+        tool_responses = await self.function_registry.perform_tool_actions(
+            last_message.tool_calls
+        )
+        # Append tool responses to the messages list
+        return {"messages": messages + tool_responses}
+
+    def _should_call_tool(self, state: GraphState) -> str:
+        """
+        Determines whether to call a tool or end the conversation turn.
+        """
+        messages = state["messages"]
+        last_message = messages[-1]
+
+        if isinstance(last_message, AIMessage) and last_message.tool_calls:
+            logger.info("Graph: Deciding to call tool.")
+            return "call_tool"
+        logger.info("Graph: Deciding to end.")
+        return "__end__" # langgraph.graph.END is also an option if imported
+
     def bind_tools(self):
 
         all_tools = self.function_registry.all_tools()
@@ -180,46 +245,41 @@ class LLMConversationHandler:
         """
 
         if conversation.id in self.conversationContent:
-            messages = self.conversationContent[conversation.id]
+            initial_messages = self.conversationContent[conversation.id]
         else:
-            messages = [
+            initial_messages = [
                 SystemMessage(content=instruction.text)
                 for instruction in self.config.system_instruction
             ]
-            self.conversationContent[conversation.id] = messages
+            # Do not save to self.conversationContent here, graph will manage state persistence per call
 
-        messages.append(HumanMessage(content=prompt))
+        # Append the current prompt
+        current_messages = initial_messages + [HumanMessage(content=prompt)]
 
-        # Get tool calls from the response's additional_kwargs
-        while True:
-            with self.llm_summary_metric.time():
-                response = await self.client.ainvoke(messages)
+        # Prepare the input for the graph
+        graph_input: GraphState = {"messages": current_messages}
 
-            logger.debug(f"Response from LLM: {response} is of type {type(response)}")
+        # Invoke the graph
+        final_graph_state = await self.graph.ainvoke(graph_input)
 
-            if not isinstance(response, AIMessage):
-                logger.error(f"Unexpected response type: {type(response)}")
-                return "Sorry, I encountered an error processing your request."
+        # Extract the final messages from the graph's output state
+        final_messages = final_graph_state["messages"]
 
-            messages.append(response)
+        # Save final conversation state
+        self.conversationContent[conversation.id] = final_messages
 
-            if not response.tool_calls:
-                logger.debug("No tool calls found in the response.")
-                break
+        # The last message in the final_messages list should be the AI's response
+        final_response_message = final_messages[-1] if final_messages else None
 
-            # Perform the tool calls and apply the results to the contents
-            tool_responses = await self.function_registry.perform_tool_actions(
-                response.tool_calls
-            )
-            logger.debug(f"Function responses: {tool_responses}")
+        logger.debug(f"Final response from graph: {final_response_message}")
 
-            messages.extend(tool_responses)
-
-        logger.debug(f"Final response from LLM: {response}")
-
-        # Get the final text response
-        if isinstance(response, AIMessage):
-            return response.content
+        if isinstance(final_response_message, AIMessage):
+            return final_response_message.content
+        elif final_response_message is None:
+            logger.error("Graph execution resulted in no messages.")
+            return "Sorry, I encountered an issue and couldn't generate a response."
         else:
-            logger.error(f"Unexpected final response type: {type(response)}")
+            logger.error(
+                f"Unexpected final response type from graph: {type(final_response_message)}"
+            )
             return "Sorry, I encountered an error processing your request."
