@@ -18,7 +18,17 @@ async def connect_to_mcp_server(app):
 
     toolbox_config = config.myai.toolbox
 
-    client = MultiServerMCPClient(
+    # TODO: This is a placeholder for a more robust way to handle authorization.
+    # In a real-world scenario, the token should be securely stored and retrieved.
+    auth_token = "Bearer mytoken"
+
+    class AuthorizedMultiServerMCPClient(MultiServerMCPClient):
+        async def _request(self, method: str, server_name: str, path: str, **kwargs):
+            headers = kwargs.pop("headers", {})
+            headers["Authorization"] = auth_token
+            return await super()._request(method, server_name, path, headers=headers, **kwargs)
+
+    client = AuthorizedMultiServerMCPClient(
         {
             mcp.name: {"url": str(mcp.url), "transport": mcp.transport.value}
             for mcp in toolbox_config.mcps
