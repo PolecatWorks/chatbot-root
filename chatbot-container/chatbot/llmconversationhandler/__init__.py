@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from chatbot.llmconversationhandler import toolregistry
 from langchain_core.tools.structured import StructuredTool
+import langgraph
 
 from langchain_core.messages import (
     HumanMessage,
@@ -22,8 +23,8 @@ from chatbot.tools import mytools
 from langchain.chat_models import init_chat_model
 import httpx
 
-from langgraph.graph import StatefulGraph, END
-from .graph_state import GraphState
+from langgraph.graph import StateGraph, END, START
+from .graph_state import AgentState
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -111,27 +112,33 @@ class LLMConversationHandler:
         self.llm_summary_metric = Summary("llm_usage", "Summary of LLM usage")
 
         # Initialize the graph
-        workflow = StatefulGraph(GraphState)
-        workflow.add_node("call_llm", self._call_llm)
-        workflow.add_node("call_tool", self._call_tool)
+        workflow = StateGraph(AgentState)
+        workflow.add_node("chatbot", self._call_llm)
+        workflow.add_node("my_tools", self._call_tool)
+
+
+        workflow.add_edge(START, "chatbot")
+        workflow.add_edge("my_tools", "chatbot")
+        # workflow.add_edge("chatbot", END)
 
         # Set the entrypoint
-        workflow.set_entry_point("call_llm")
+        # workflow.set_entry_point("call_llm")
 
         # Add edges
         workflow.add_conditional_edges(
-            "call_llm",
+            "chatbot",
             self._should_call_tool,
             {
-                "call_tool": "call_tool",
-                "__end__": END,
+                "call_tool": "my_tools",
+                END: END,
             },
         )
-        workflow.add_edge("call_tool", "call_llm")
 
         self.graph = workflow.compile()
+        print(self.graph.get_graph().draw_ascii())
 
-    async def _call_llm(self, state: GraphState) -> dict:
+
+    async def _call_llm(self, state: AgentState) -> dict:
         """
         Node to call the language model.
         """
@@ -141,9 +148,11 @@ class LLMConversationHandler:
         # The response from ainvoke is already an AIMessage if no tool calls,
         # or an AIMessage with tool_calls if tools are called.
         # We append it to the list of messages to be included in the state.
+
+        # TODO: Check do we append existing messages or just the response?
         return {"messages": messages + [response]}
 
-    async def _call_tool(self, state: GraphState) -> dict:
+    async def _call_tool(self, state: AgentState) -> dict:
         """
         Node to execute tool calls.
         """
@@ -151,7 +160,8 @@ class LLMConversationHandler:
         last_message = messages[-1]
         if not isinstance(last_message, AIMessage) or not last_message.tool_calls:
             # Should not happen if routed correctly
-            logger.warning("Call tool node received state without tool calls.")
+            logger.error("Call tool node received state without tool calls.")
+            # todo: Handle this case more gracefully, maybe raise an exception or return an error message
             return {}
 
         tool_responses = await self.function_registry.perform_tool_actions(
@@ -160,7 +170,7 @@ class LLMConversationHandler:
         # Append tool responses to the messages list
         return {"messages": messages + tool_responses}
 
-    def _should_call_tool(self, state: GraphState) -> str:
+    def _should_call_tool(self, state: AgentState) -> str:
         """
         Determines whether to call a tool or end the conversation turn.
         """
@@ -170,8 +180,10 @@ class LLMConversationHandler:
         if isinstance(last_message, AIMessage) and last_message.tool_calls:
             logger.info("Graph: Deciding to call tool.")
             return "call_tool"
+
         logger.info("Graph: Deciding to end.")
-        return "__end__" # langgraph.graph.END is also an option if imported
+
+        return langgraph.graph.END  # is also an option if imported
 
     def bind_tools(self):
 
@@ -257,7 +269,7 @@ class LLMConversationHandler:
         current_messages = initial_messages + [HumanMessage(content=prompt)]
 
         # Prepare the input for the graph
-        graph_input: GraphState = {"messages": current_messages}
+        graph_input: AgentState = {"messages": current_messages}
 
         # Invoke the graph
         final_graph_state = await self.graph.ainvoke(graph_input)
