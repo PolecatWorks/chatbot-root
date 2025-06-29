@@ -9,6 +9,9 @@ from abc import ABC, abstractmethod
 from chatbot.llmconversationhandler import toolregistry
 from langchain_core.tools.structured import StructuredTool
 import langgraph
+from langgraph.checkpoint.memory import MemorySaver
+from langchain_core.runnables import RunnableConfig
+
 
 from langchain_core.messages import (
     HumanMessage,
@@ -134,8 +137,29 @@ class LLMConversationHandler:
             },
         )
 
-        self.graph = workflow.compile()
+        self.memory = MemorySaver()
+
+        self.graph = workflow.compile(checkpointer=self.memory)
+
         print(self.graph.get_graph().draw_ascii())
+
+
+    @staticmethod
+    def get_graph_config(conversation: ConversationAccount) -> RunnableConfig:
+        """
+        Returns a configuration dictionary for the graph, given a ConversationAccount.
+        This can be used to pass context or metadata to the graph execution.
+
+        Args:
+            conversation (ConversationAccount): The conversation context
+
+        Returns:
+            dict: Configuration for the graph
+        """
+
+        return RunnableConfig({
+            "configurable": {"thread_id": conversation.id }
+        })
 
 
     async def _call_llm(self, state: AgentState) -> dict:
@@ -150,6 +174,9 @@ class LLMConversationHandler:
         # We append it to the list of messages to be included in the state.
 
         # TODO: Check do we append existing messages or just the response?
+
+        # print(f"LLM response: {response}")
+        # print(f"messages: {messages}")
         return {"messages": messages + [response]}
 
     async def _call_tool(self, state: AgentState) -> dict:
@@ -242,7 +269,10 @@ class LLMConversationHandler:
         logger.debug("File added to conversation but not sent to LLM yet.")
         return None
 
-    async def chat(self, conversation: ConversationAccount, prompt: str) -> str:
+
+    async def chat(
+        self, conversation: ConversationAccount, prompt: str
+    ) -> str:
         """Make a chat request to the AI model with the provided prompt.
         This method sends a prompt to the model and processes the response.
         It handles tool calls made by the model, executes the corresponding tool,
@@ -256,29 +286,17 @@ class LLMConversationHandler:
             str: text response for the bot
         """
 
-        if conversation.id in self.conversationContent:
-            initial_messages = self.conversationContent[conversation.id]
-        else:
-            initial_messages = [
-                SystemMessage(content=instruction.text)
-                for instruction in self.config.system_instruction
-            ]
-            # Do not save to self.conversationContent here, graph will manage state persistence per call
+        graph_config = self.get_graph_config(conversation)
+        logger.debug(f"Graph config: {graph_config}")
 
-        # Append the current prompt
-        current_messages = initial_messages + [HumanMessage(content=prompt)]
-
-        # Prepare the input for the graph
-        graph_input: AgentState = {"messages": current_messages}
+        graph_input = {"messages": [HumanMessage(content=prompt)]}
 
         # Invoke the graph
-        final_graph_state = await self.graph.ainvoke(graph_input)
+        final_graph_state = await self.graph.ainvoke(graph_input, graph_config)
 
         # Extract the final messages from the graph's output state
         final_messages = final_graph_state["messages"]
 
-        # Save final conversation state
-        self.conversationContent[conversation.id] = final_messages
 
         # The last message in the final_messages list should be the AI's response
         final_response_message = final_messages[-1] if final_messages else None

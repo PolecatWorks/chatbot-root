@@ -19,6 +19,7 @@ from botbuilder.core import (
     TurnContext,
 )
 from chatbot.azurebot.webview import AzureBotView
+from chatbot.llmconversationhandler import LLMConversationHandler
 from prometheus_client import CollectorRegistry, Summary
 import base64
 import aiohttp
@@ -73,6 +74,7 @@ class AzureBot(ActivityHandler):
 
     async def on_message_activity(self, turn_context: TurnContext):
 
+        logger.debug(f"turn_context: {turn_context}")
         logger.debug("Received message activity: %s", turn_context.activity)
 
         # Check if the incoming message is a file attachment
@@ -106,8 +108,11 @@ class AzureBot(ActivityHandler):
             return
             # Optionally, you can send the base64 string or process it further here
 
+
+        llmHandler: LLMConversationHandler = self.app[keys.myai]
+
         with self.chat_metric.labels("on_message").time():
-            llm_reply = await self.app[keys.myai].chat(
+            llm_reply = await llmHandler.chat(
                 turn_context.activity.conversation, turn_context.activity.text
             )
 
