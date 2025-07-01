@@ -43,8 +43,6 @@ async def bind_tools_when_ready(app: web.Application):
     # This is called on startup, so we expect the mcpobjects to be set by
     # the mcp_app_create function before this is called.
 
-    if this is not ready yet then wait. If we dont hit it x times then fail
-
     if keys.mcpobjects not in app:
         # If the mcpobjects key is not in the app, we cannot proceed
         logger.error("MCPObjects not found in app context. Cannot bind tools.")
@@ -58,6 +56,8 @@ async def bind_tools_when_ready(app: web.Application):
     llmHandler.register_tools(mcpObjects.tools)
 
     llmHandler.bind_tools()
+
+    llmHandler.compile()
 
 
 def langchain_app_create(app: web.Application, config: ServiceConfig):
@@ -131,15 +131,12 @@ class LLMConversationHandler:
         # Initialize the graph
         workflow = StateGraph(AgentState)
         workflow.add_node("chatbot", self._call_llm)
-        workflow.add_node("my_tools", self._call_tool)
+        # workflow.add_node("my_tools", self._call_tool)
 
 
         workflow.add_edge(START, "chatbot")
         workflow.add_edge("my_tools", "chatbot")
-        # workflow.add_edge("chatbot", END)
-
-        # Set the entrypoint
-        # workflow.set_entry_point("call_llm")
+        workflow.add_edge("chatbot", END)
 
         # Add edges
         workflow.add_conditional_edges(
@@ -151,11 +148,11 @@ class LLMConversationHandler:
             },
         )
 
+        self.workflow = workflow
+
         self.memory = MemorySaver()
 
-        self.graph = workflow.compile(checkpointer=self.memory)
 
-        print(self.graph.get_graph().draw_ascii())
 
 
     @staticmethod
@@ -228,21 +225,34 @@ class LLMConversationHandler:
 
         return langgraph.graph.END  # is also an option if imported
 
+
     def bind_tools(self):
+        """ Binds the tools to the client and initializes the ToolNode.
+        This is seperated out as some of the tool elements (eg MCP) are not available until the async runtime is available.
+        """
 
         all_tools = self.function_registry.all_tools()
 
         logger.info(f"Binding tools: {[tool.name for tool in all_tools]}")
 
         self.client = self.client.bind_tools(all_tools)
-        self.toolbox = ToolNode(tools=all_tools)
+        self.toolnode = ToolNode(tools=all_tools)
+
+        # self.workflow.add_node("my_tools", self._call_tool)
+        self.workflow.add_node("my_tools", self.toolnode)
+
 
     def compile(self) -> StateGraph:
         """
         Compiles the graph with the current configuration.
+        This is essentiall as we want to add some tools and generate the ToolNode dynamically.
         This is useful if you want to change the graph dynamically.
         """
-        self.graph.compile(checkpointer=self.memory)
+
+
+        self.graph = self.workflow.compile(checkpointer=self.memory)
+
+        print(self.graph.get_graph().draw_ascii())
 
         logger.info("Graph compiled successfully.")
 
@@ -250,7 +260,7 @@ class LLMConversationHandler:
 
 
     def register_tools(self, tools: List[StructuredTool]):
-        """Registers the tools with the Gemini client."""
+        """Registers the tools with the client."""
         self.function_registry.register_tools(tools)
 
 
@@ -314,7 +324,7 @@ class LLMConversationHandler:
         graph_input = {"messages": [HumanMessage(content=prompt)]}
 
         # Invoke the graph
-        final_graph_state = await self.graph.ainvoke(graph_input, graph_config)
+        final_graph_state = await self.graph.ainvoke(graph_input, config=graph_config)
 
         # Extract the final messages from the graph's output state
         final_messages = final_graph_state["messages"]
