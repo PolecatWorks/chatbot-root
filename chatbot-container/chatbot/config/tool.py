@@ -19,6 +19,7 @@ class McpConfig(BaseModel):
 
     url: HttpUrl = Field(description="Host to connect to for MCP")
     transport: TransportEnum
+    prompts: list[str] = []
 
 
 class ToolConfig(BaseModel):

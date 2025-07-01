@@ -102,18 +102,21 @@ class AzureBot(ActivityHandler):
                 await turn_context.send_activity(
                     f"Received file '{name}' (type: {content_type}). Length ({len(file_bytes)}). Base64 encoded content prepared for attachment."
                 )
-                await self.app[keys.myai].upload(
+                await self.app[keys.llmhandler].upload(
                     turn_context.activity.conversation, name, content_type, file_bytes
                 )
             return
             # Optionally, you can send the base64 string or process it further here
 
 
-        llmHandler: LLMConversationHandler = self.app[keys.myai]
+        llmHandler: LLMConversationHandler = self.app[keys.llmhandler]
 
         with self.chat_metric.labels("on_message").time():
+
             llm_reply = await llmHandler.chat(
-                turn_context.activity.conversation, turn_context.activity.text
+                turn_context.activity.conversation,
+                "my-identity",
+                turn_context.activity.text
             )
 
         logger.debug("LLM reply: %s", llm_reply)
