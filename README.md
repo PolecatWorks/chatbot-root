@@ -4,6 +4,11 @@ Create a bot for MS Teams.
 
 The Bot follows a communications protocol supported by the Azure Bot Framework
 
+## Things to do
+
+* [ ] Refector the typing to replace List to list (and equivalent for other types) aligning to modern python (3.8+)
+* [ ] Consider to put MCPObjects inside LLMConversationHandler
+
 
 ## Interaction flow
 
@@ -45,6 +50,45 @@ sequenceDiagram
 
 ```
 
+# Initiate sequence for LLM
+
+
+```mermaid
+flowchart TB
+    subgraph WebAppDict
+      config
+      mcpobjects
+      llmHandler
+    end
+
+    subgraph webapp
+      on_startup --> running
+      subgraph on_startup
+        connect_to_mcp_server -- create --> mcpobjects
+        mcpobjects -- use --> bind_tools_when_ready
+        llmHandler -- use --> bind_tools_when_ready
+      end
+    end
+
+    subgraph app_init
+      hams_app_create --> mcp_app_create
+      mcp_app_create --> service_app_create
+      mcp_app_create -- init --> connect_to_mcp_server
+      service_app_create --> azure_app_create
+      azure_app_create --> langchain_app_create
+      subgraph langchain_app_create
+        mcpobjects -- use --> init
+      end
+      langchain_app_create -- create --> llmHandler
+      langchain_app_create -- init --> bind_tools_when_ready
+      subgraph bind_tools_when_ready
+        register_tools --> bind_tools
+      end
+    end
+
+    app_init --> webapp
+
+```
 
 ## Overview of Bots
 

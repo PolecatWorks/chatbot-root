@@ -43,6 +43,8 @@ class ToolRegistry:
         )
 
     def all_tools(self) -> List[StructuredTool]:
+        print(f"ToolRegistry.all_tools: {self.registry}")
+
         return [mytool.tool for mytool in self.registry.values()]
 
     def register_tools(self, tools: List[StructuredTool]) -> None:
@@ -52,7 +54,7 @@ class ToolRegistry:
             self.register_tool(tool)
 
     def register_tool(self, tool: StructuredTool) -> None:
-        """Registers the tools with the Gemini client."""
+        """Registers the tools with the client."""
 
         if not callable(tool):
             raise ValueError(f"Tool {tool} is not callable.")

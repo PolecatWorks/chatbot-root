@@ -1,22 +1,32 @@
+from typing import Annotated
 import requests
 import logging
 from langchain_core.tools import InjectedToolArg, tool
+from langchain_core.runnables import RunnableConfig
 
 logger = logging.getLogger(__name__)
 
 
 @tool(parse_docstring=True)
-async def search_records_by_name(search_name: str) -> list[int]:
+async def search_records_by_name(search_name: str,
+                                 config: RunnableConfig
+                                #  config: RunnableConfig,
+                                #  identity: Annotated[str, InjectedToolArg]
+                                 ) -> list[int]:
     """
     Searchs for records relating to Customers
     Searches for records by name using an external API and returns their primary keys.
 
     Args:
         search_name: The name to search for.
+        config: config of the tool to access identity
 
     Returns:
         A list of primary keys (integers) of matching records.
     """
+    logger.error(f"config = {config}")
+    identity = config["configurable"].get("identity")
+    logger.error(f"Identity used for search: {identity}")
     return [1, 2, 3, 5, 7, 11, 13, 17, 19, 23, 29]  # Mocked data for testing purposes
 
     headers = {}

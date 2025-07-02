@@ -7,7 +7,13 @@ import logging
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from chatbot.llmconversationhandler import toolregistry
+from chatbot.mcp import MCPObjects
 from langchain_core.tools.structured import StructuredTool
+import langgraph
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.prebuilt import ToolNode, tools_condition
+from langchain_core.runnables import RunnableConfig
+
 
 from langchain_core.messages import (
     HumanMessage,
@@ -22,6 +28,8 @@ from chatbot.tools import mytools
 from langchain.chat_models import init_chat_model
 import httpx
 
+from langgraph.graph import StateGraph, END, START
+from .graph_state import AgentState
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -31,15 +39,25 @@ async def bind_tools_when_ready(app: web.Application):
     """
     Wait for the mcptools to be constructed then bind to them
     """
+    # TODO: Do we need to wait for the mcpobjects to be ready?
+    # This is called on startup, so we expect the mcpobjects to be set by
+    # the mcp_app_create function before this is called.
 
-    if app[keys.mcptools] is None:
-        raise ValueError("OOPS")
+    if keys.mcpobjects not in app:
+        # If the mcpobjects key is not in the app, we cannot proceed
+        logger.error("MCPObjects not found in app context. Cannot bind tools.")
+        raise ValueError("MCPObjects not found in app context.")
 
-    print("I FOUND THE MCP TOOLS")
 
-    app[keys.myai].register_tools(app[keys.mcptools])
+    llmHandler: LLMConversationHandler = app[keys.llmhandler]
 
-    app[keys.myai].bind_tools()
+    mcpObjects: MCPObjects = app[keys.mcpobjects]
+
+    llmHandler.register_tools(mcpObjects.tools)
+
+    llmHandler.bind_tools()
+
+    llmHandler.compile()
 
 
 def langchain_app_create(app: web.Application, config: ServiceConfig):
@@ -73,11 +91,13 @@ def langchain_app_create(app: web.Application, config: ServiceConfig):
                 f"Unsupported model provider: {config.aiclient.model_provider}"
             )
 
+    # use bind_tools_when_ready to move some of the constructions funtions to an async runtime
     app.on_startup.append(bind_tools_when_ready)
 
-    app[keys.myai] = LLMConversationHandler(config.myai, model)
+    llmHandler = LLMConversationHandler(config.myai, model)
+    llmHandler.register_tools(mytools)
 
-    app[keys.myai].register_tools(mytools)
+    app[keys.llmhandler] = llmHandler
 
 
 class LLMConversationHandler:
@@ -104,32 +124,150 @@ class LLMConversationHandler:
 
         self.client = client
 
-        self.conversationContent: Dict[str, Any] = {}
         # self.prometheus_registry = prometheus_registry
         self.llm_summary_metric = Summary("llm_usage", "Summary of LLM usage")
 
+
+        # Initialize the graph
+        workflow = StateGraph(AgentState)
+        workflow.add_node("chatbot", self._call_llm)
+        # workflow.add_node("my_tools", self._call_tool)
+
+
+        workflow.add_edge(START, "chatbot")
+        workflow.add_edge("my_tools", "chatbot")
+        workflow.add_edge("chatbot", END)
+
+        # Add edges
+        workflow.add_conditional_edges(
+            "chatbot",
+            self._should_call_tool,
+            {
+                "call_tool": "my_tools",
+                END: END,
+            },
+        )
+
+        self.workflow = workflow
+
+        self.memory = MemorySaver()
+
+
+
+
+    @staticmethod
+    def get_graph_config(conversation: ConversationAccount, **kwargs) -> RunnableConfig:
+        """
+        Returns a configuration dictionary for the graph, given a ConversationAccount.
+        This can be used to pass context or metadata to the graph execution.
+
+        Args:
+            conversation (ConversationAccount): The conversation context
+
+        Returns:
+            dict: Configuration for the graph
+        """
+
+        config_dict = {"configurable": {"thread_id": conversation.id, **kwargs}}
+        print(f"Graph config: {config_dict}")
+        # return config_dict
+        return RunnableConfig(configurable={"thread_id": conversation.id, **kwargs})
+        return RunnableConfig(config_dict)
+
+
+    async def _call_llm(self, state: AgentState) -> dict:
+        """
+        Node to call the language model.
+        """
+        messages = state["messages"]
+        with self.llm_summary_metric.time():
+            response = await self.client.ainvoke(messages)
+        # The response from ainvoke is already an AIMessage if no tool calls,
+        # or an AIMessage with tool_calls if tools are called.
+        # We append it to the list of messages to be included in the state.
+
+        # TODO: Check do we append existing messages or just the response?
+
+        # print(f"LLM response: {response}")
+        # print(f"messages: {messages}")
+        return {"messages": messages + [response]}
+
+    async def _call_tool(self, *args, **kwargs) -> dict:
+        """
+        Node to execute tool calls.
+        """
+
+        print(f"ToolNode called with args: {args}, kwargs: {kwargs}")
+
+        logger.error(f"State is {state}")
+
+        messages = state["messages"]
+        last_message = messages[-1]
+        if not isinstance(last_message, AIMessage) or not last_message.tool_calls:
+            # Should not happen if routed correctly
+            logger.error("Call tool node received state without tool calls.")
+            # todo: Handle this case more gracefully, maybe raise an exception or return an error message
+            return {}
+
+        tool_responses = await self.function_registry.perform_tool_actions(
+            last_message.tool_calls
+        )
+        # Append tool responses to the messages list
+        return {"messages": messages + tool_responses}
+
+    def _should_call_tool(self, state: AgentState) -> str:
+        """
+        Determines whether to call a tool or end the conversation turn.
+        """
+        messages = state["messages"]
+        last_message = messages[-1]
+
+        if isinstance(last_message, AIMessage) and last_message.tool_calls:
+            logger.info("Graph: Deciding to call tool.")
+            return "call_tool"
+
+        logger.info("Graph: Deciding to end.")
+
+        return langgraph.graph.END  # is also an option if imported
+
+
     def bind_tools(self):
+        """ Binds the tools to the client and initializes the ToolNode.
+        This is seperated out as some of the tool elements (eg MCP) are not available until the async runtime is available.
+        """
 
         all_tools = self.function_registry.all_tools()
 
         logger.info(f"Binding tools: {[tool.name for tool in all_tools]}")
 
         self.client = self.client.bind_tools(all_tools)
+        self.toolnode = ToolNode(tools=all_tools)
+
+        # self.workflow.add_node("my_tools", self._call_tool)
+        self.workflow.add_node("my_tools", self.toolnode)
+
+
+    def compile(self) -> StateGraph:
+        """
+        Compiles the graph with the current configuration.
+        This is essentiall as we want to add some tools and generate the ToolNode dynamically.
+        This is useful if you want to change the graph dynamically.
+        """
+
+
+        self.graph = self.workflow.compile(checkpointer=self.memory)
+
+        print(self.graph.get_graph().draw_ascii())
+
+        logger.info("Graph compiled successfully.")
+
+        return self.graph
+
 
     def register_tools(self, tools: List[StructuredTool]):
-        """Registers the tools with the Gemini client."""
+        """Registers the tools with the client."""
         self.function_registry.register_tools(tools)
 
-    def get_conversation(self, conversation: ConversationAccount) -> List[Any]:
-        if conversation.id in self.conversationContent:
-            messages = self.conversationContent[conversation.id]
-        else:
-            messages = [
-                SystemMessage(content=instruction.text)
-                for instruction in self.config.system_instruction
-            ]
-            self.conversationContent[conversation.id] = messages
-        return messages
 
     async def upload(
         self,
@@ -165,7 +303,12 @@ class LLMConversationHandler:
         logger.debug("File added to conversation but not sent to LLM yet.")
         return None
 
-    async def chat(self, conversation: ConversationAccount, prompt: str) -> str:
+
+    async def chat(
+        self, conversation: ConversationAccount,
+        identity: str,
+        prompt: str
+    ) -> str:
         """Make a chat request to the AI model with the provided prompt.
         This method sends a prompt to the model and processes the response.
         It handles tool calls made by the model, executes the corresponding tool,
@@ -173,53 +316,37 @@ class LLMConversationHandler:
 
         Args:
             conversation (Conversation): The conversation context
+            identity (str): The identity of the user or bot in the conversation
             prompt (str): Prompt from the user
 
         Returns:
             str: text response for the bot
         """
 
-        if conversation.id in self.conversationContent:
-            messages = self.conversationContent[conversation.id]
+        graph_config = self.get_graph_config(conversation,identity=identity)
+        logger.debug(f"Graph config: {graph_config}")
+
+        graph_input = {"messages": [HumanMessage(content=prompt)]}
+
+        # Invoke the graph
+        final_graph_state = await self.graph.ainvoke(graph_input, config=graph_config)
+
+        # Extract the final messages from the graph's output state
+        final_messages = final_graph_state["messages"]
+
+
+        # The last message in the final_messages list should be the AI's response
+        final_response_message = final_messages[-1] if final_messages else None
+
+        logger.debug(f"Final response from graph: {final_response_message}")
+
+        if isinstance(final_response_message, AIMessage):
+            return final_response_message.content
+        elif final_response_message is None:
+            logger.error("Graph execution resulted in no messages.")
+            return "Sorry, I encountered an issue and couldn't generate a response."
         else:
-            messages = [
-                SystemMessage(content=instruction.text)
-                for instruction in self.config.system_instruction
-            ]
-            self.conversationContent[conversation.id] = messages
-
-        messages.append(HumanMessage(content=prompt))
-
-        # Get tool calls from the response's additional_kwargs
-        while True:
-            with self.llm_summary_metric.time():
-                response = await self.client.ainvoke(messages)
-
-            logger.debug(f"Response from LLM: {response} is of type {type(response)}")
-
-            if not isinstance(response, AIMessage):
-                logger.error(f"Unexpected response type: {type(response)}")
-                return "Sorry, I encountered an error processing your request."
-
-            messages.append(response)
-
-            if not response.tool_calls:
-                logger.debug("No tool calls found in the response.")
-                break
-
-            # Perform the tool calls and apply the results to the contents
-            tool_responses = await self.function_registry.perform_tool_actions(
-                response.tool_calls
+            logger.error(
+                f"Unexpected final response type from graph: {type(final_response_message)}"
             )
-            logger.debug(f"Function responses: {tool_responses}")
-
-            messages.extend(tool_responses)
-
-        logger.debug(f"Final response from LLM: {response}")
-
-        # Get the final text response
-        if isinstance(response, AIMessage):
-            return response.content
-        else:
-            logger.error(f"Unexpected final response type: {type(response)}")
             return "Sorry, I encountered an error processing your request."
