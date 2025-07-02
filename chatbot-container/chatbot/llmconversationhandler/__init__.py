@@ -169,6 +169,9 @@ class LLMConversationHandler:
         """
 
         config_dict = {"configurable": {"thread_id": conversation.id, **kwargs}}
+        print(f"Graph config: {config_dict}")
+        # return config_dict
+        return RunnableConfig(configurable={"thread_id": conversation.id, **kwargs})
         return RunnableConfig(config_dict)
 
 
@@ -189,10 +192,12 @@ class LLMConversationHandler:
         # print(f"messages: {messages}")
         return {"messages": messages + [response]}
 
-    async def _call_tool(self, state: AgentState) -> dict:
+    async def _call_tool(self, *args, **kwargs) -> dict:
         """
         Node to execute tool calls.
         """
+
+        print(f"ToolNode called with args: {args}, kwargs: {kwargs}")
 
         logger.error(f"State is {state}")
 
