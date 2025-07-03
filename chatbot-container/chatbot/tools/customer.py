@@ -1,7 +1,7 @@
-from typing import Annotated
 import requests
 import logging
 from langchain_core.tools import InjectedToolArg, tool
+# from typing import Annotated # Annotated is not used
 from langchain_core.runnables import RunnableConfig
 
 logger = logging.getLogger(__name__)

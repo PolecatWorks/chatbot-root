@@ -1,5 +1,4 @@
 from datetime import timedelta
-from typing import List
 from pydantic import BaseModel, Field
 from pydantic import HttpUrl
 from enum import Enum
@@ -43,11 +42,11 @@ class ToolConfig(BaseModel):
 class ToolBoxConfig(BaseModel):
     """Configuration for tool execution."""
 
-    tools: List[ToolConfig] = Field(
+    tools: list[ToolConfig] = Field(
         description="Per-tool configuration with default settings"
     )
     max_concurrent: int = Field(
         description="Default maximum number of concurrent instances for tools"
     )
 
-    mcps: List[McpConfig] = Field(description="MCP configuration")
+    mcps: list[McpConfig] = Field(description="MCP configuration")

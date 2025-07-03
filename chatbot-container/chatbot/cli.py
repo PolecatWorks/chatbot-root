@@ -9,8 +9,6 @@ import logging
 import logging.config
 from pydantic_yaml import to_yaml_str
 
-from typing import List
-
 from .config import ServiceConfig
 
 
