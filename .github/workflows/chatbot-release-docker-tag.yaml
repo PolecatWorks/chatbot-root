@@ -54,7 +54,7 @@ jobs:
 
           SOURCE_SHA_TAG="sha-${{ github.sha }}"
           IMAGE_BASE_CHATBOT="${{ env.REGISTRY }}/${REPO_NAME}"
-          IMAGE_BASE_MCP="${{ env.REGISTRY }}/${REPO_NAME}-aiohttp-mcp"
+          IMAGE_BASE_MCP="${{ env.REGISTRY }}/${REPO_NAME}-mcp"
           echo "IMAGE_BASE_CHATBOT=${IMAGE_BASE_CHATBOT}" >> $GITHUB_OUTPUT
           echo "IMAGE_BASE_MCP=${IMAGE_BASE_MCP}" >> $GITHUB_OUTPUT
 
@@ -144,7 +144,7 @@ jobs:
           \`\`\`
 
           [Link to Chatbot GHCR Packages Page](https://github.com/${{ github.repository }}/pkgs/container/${{ github.event.repository.name }})
-          [Link to MCP GHCR Packages Page](https://github.com/${{ github.repository }}/pkgs/container/${{ github.event.repository.name }}-aiohttp-mcp)
+          [Link to MCP GHCR Packages Page](https://github.com/${{ github.repository }}/pkgs/container/${{ github.event.repository.name }}-mcp)
           EOF
           )
           # Store the content to be appended

@@ -1,4 +1,4 @@
-name: Docker AioHttp
+name: Docker MCP
 
 # This workflow uses actions that are not certified by GitHub.
 # They are provided by a third-party and are governed by
@@ -16,7 +16,7 @@ env:
   # Use docker.io for Docker Hub if empty
   REGISTRY: ghcr.io
   # github.repository as <account>/<repo>
-  IMAGE_NAME: ${{ github.repository }}-aiohttp-mcp
+  IMAGE_NAME: ${{ github.repository }}-mcp
 
 
 jobs:
@@ -92,13 +92,13 @@ jobs:
         id: build-and-push
         uses: docker/build-push-action@v5
         with:
-          context: aiohttp-container
+          context: mcp-container
           platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=aiohttp
-          cache-to: type=gha,mode=max,scope=aiohttp
+          cache-from: type=gha,scope=mcp
+          cache-to: type=gha,mode=max,scope=mcp
           outputs: type=image,name=target,annotation-index.org.opencontainers.image.description=AioHttp basec MCP service
 
       # # Sign the resulting Docker image digest except on PRs.
