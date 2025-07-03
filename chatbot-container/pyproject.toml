@@ -28,10 +28,10 @@ pydantic-file-secrets = "^0.4"
 prometheus-async = "^25.1.0"
 botbuilder-integration-aiohttp= ">=4.14.0"
 langchain-openai = "^0.3"
-langchain-google-genai = "^2.1.5"
+langchain-google-genai = "^2.1"
 langchain = "^0.3"
 langchain-mcp-adapters = "^0.1.7"
-langgraph = "^0.4"
+langgraph = "^0.5"
 grandalf = "^0.8"
 
 
