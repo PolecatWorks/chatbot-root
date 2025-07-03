@@ -11,7 +11,7 @@ chatbot_CMD=chatbot
 mcp_CMD=mcp
 
 chatbot_PORT=8000
-aiohttp_PORT=8100
+mcp_PORT=8100
 
 
 guard-%:
