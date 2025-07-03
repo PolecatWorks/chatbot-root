@@ -6,7 +6,7 @@ from pydantic import HttpUrl
 from pydantic_settings import BaseSettings, YamlConfigSettingsSource, SettingsConfigDict
 from pydantic_file_secrets import FileSecretsSettingsSource
 from pathlib import Path
-from typing import Dict, Any, Self, List, Literal
+from typing import Any, Self, Literal # TODO: Review Self and Literal for Python version compatibility
 from datetime import timedelta
 
 
@@ -47,7 +47,7 @@ class MyAiConfig(BaseModel):
     Configuration for the MyAI bot
     """
 
-    system_instruction: List[AIPromptConfig] = Field(
+    system_instruction: list[AIPromptConfig] = Field(
         description="List of system instructions for the bot",
     )
 
@@ -61,7 +61,7 @@ class ServiceConfig(BaseSettings):
     Configuration for the service
     """
 
-    logging: Dict[str, Any] = Field(description="Logging configuration")
+    logging: dict[str, Any] = Field(description="Logging configuration")
     myai: MyAiConfig = Field(description="MyAI bot configuration")
 
     webservice: WebServerConfig = Field(description="Web server configuration")

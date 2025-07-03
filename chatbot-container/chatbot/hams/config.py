@@ -2,7 +2,6 @@ import asyncio
 from datetime import timedelta
 import aiohttp
 import logging
-from typing import List, Union
 from pydantic import Field, BaseModel
 from pydantic import HttpUrl
 from abc import ABC, abstractmethod
@@ -67,7 +66,7 @@ class HttpCheck(HamsCheck):
                     return response.status == self.returncode
 
 
-CheckType = Union[HttpCheck]
+CheckType = HttpCheck # Replaced Union[HttpCheck] with HttpCheck as it's the only type
 
 
 class HamsChecks(BaseModel):
@@ -81,10 +80,10 @@ class HamsChecks(BaseModel):
     fails: int = Field(
         description="Number of fails before the check is considered failed"
     )
-    preflights: List[CheckType] = Field(description="Preflight checks")
-    shutdowns: List[CheckType] = Field(description="Shutdown checks")
+    preflights: list[CheckType] = Field(description="Preflight checks")
+    shutdowns: list[CheckType] = Field(description="Shutdown checks")
 
-    async def run_checks(self, checks: List[CheckType]) -> bool:
+    async def run_checks(self, checks: list[CheckType]) -> bool:
         """
         Run the checks with timeouts and fail counting
         Will reply True if all checks pass

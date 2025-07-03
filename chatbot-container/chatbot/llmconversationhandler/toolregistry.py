@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from typing import List, Dict, Callable, Any
+from typing import Any
+from collections.abc import Sequence, Callable # For List and Callable
 from chatbot.config.tool import ToolBoxConfig
 from langchain_core.messages.tool import ToolCall, ToolMessage
 from langchain_core.tools.structured import StructuredTool
@@ -28,7 +29,7 @@ class ToolDefinition:
 
 class ToolRegistry:
     def __init__(self, toolboxConfig: ToolBoxConfig):
-        self.registry: Dict[str, ToolDefinition] = {}
+        self.registry: dict[str, ToolDefinition] = {}
 
         self.toolboxConfig = toolboxConfig
 
@@ -42,12 +43,12 @@ class ToolRegistry:
             ["tool_name"],
         )
 
-    def all_tools(self) -> List[StructuredTool]:
+    def all_tools(self) -> Sequence[StructuredTool]:
         print(f"ToolRegistry.all_tools: {self.registry}")
 
         return [mytool.tool for mytool in self.registry.values()]
 
-    def register_tools(self, tools: List[StructuredTool]) -> None:
+    def register_tools(self, tools: Sequence[StructuredTool]) -> None:
         """Registers the tools with the Gemini client."""
 
         for tool in tools:
@@ -81,7 +82,7 @@ class ToolRegistry:
 
         logger.debug(f"Tool registered: {tool_name}")
 
-    async def perform_tool_actions(self, parts: List[ToolCall]) -> List[ToolMessage]:
+    async def perform_tool_actions(self, parts: Sequence[ToolCall]) -> Sequence[ToolMessage]:
         """Performs actions using the registered tools.
         Reply back with an array to match what was called
         """

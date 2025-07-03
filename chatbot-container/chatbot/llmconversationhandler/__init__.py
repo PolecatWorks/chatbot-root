@@ -1,5 +1,6 @@
 import base64
-from typing import Any, Callable, Dict, List
+from typing import Any
+from collections.abc import Sequence, Callable # For List and Callable
 from chatbot.config import MyAiConfig, ServiceConfig
 from aiohttp import web
 from chatbot import keys
@@ -264,7 +265,7 @@ class LLMConversationHandler:
         return self.graph
 
 
-    def register_tools(self, tools: List[StructuredTool]):
+    def register_tools(self, tools: Sequence[StructuredTool]):
         """Registers the tools with the client."""
         self.function_registry.register_tools(tools)
 
