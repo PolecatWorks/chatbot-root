@@ -18,6 +18,27 @@ spec:
     remediation:
       retries: 3
   values:
+    volumes:
+    - name: configs
+      configMap:
+        name: "{{ template \"chatbot.fullname\" . }}"
+    # - name: objects
+    #   emptyDir:
+    #     sizeLimit: 500Mi
+    - name: secrets
+      projected:
+        sources:
+          - secret:
+              # optional: true
+              name: "{{ .Values.secretName | default (include \"chatbot.fullname\" .) }}"
+              items:
+                - key: app_password
+                  path: bot/app_password
+                - key: app_id
+                  path: bot/app_id
+                - key: gcp_llm_key
+                  path: aiclient/google_api_key
+
     image:
       repository: ghcr.io/polecatworks/chatbot-root
       tag: main
