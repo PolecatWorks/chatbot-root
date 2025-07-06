@@ -81,7 +81,7 @@ spec:
           mcps:
           - name: customers
             url: http://localhost:8100/mcp
-            transport: sse
+            transport: streamable_http
 
       hams:
         url: http://localhost:8079
