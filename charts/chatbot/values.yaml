@@ -129,7 +129,7 @@ volumes: &volumes
               - key: app_id
                 path: bot/app_id
               - key: gcp_llm_key
-                path: gemini/gcp_llm_key
+                path: aiclient/google_api_key
 
 
 volumeMounts: &volume-mount
