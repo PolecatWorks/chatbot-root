@@ -44,9 +44,7 @@ spec:
       root:
         handlers: [console]
         level: INFO
-    # bot:
-    #   app_id: bot/id
-    #   app_password: bot/passord
+
     webservice:
       url: http://0.0.0.0:8080
       prefix: pie/v0
