@@ -19,12 +19,10 @@ logging:
   root:
     handlers: [console]
     level: INFO
+# ONLY define for definitive objects
 webservice:
   url: http://0.0.0.0:8080
   prefix: pie/v0
-bot: {}
-gemini:
-  model: gemini-2.0-flash
 hams:
   url: http://0.0.0.0:8079
   prefix: hams
