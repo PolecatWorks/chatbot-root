@@ -18,6 +18,12 @@ spec:
     remediation:
       retries: 3
   values:
+    image:
+      repository: ghcr.io/polecatworks/chatbot-root
+      tag: main
+      pullPolicy: Always
+    imagePullSecrets:
+    - name: dockerconfigjson-ghcr-io
     logging:
       version: 1
       disable_existing_loggers: False
