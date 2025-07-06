@@ -18,6 +18,18 @@ spec:
     remediation:
       retries: 3
   values:
+    volumes:
+    - name: configs
+      configMap:
+        name: "{{ template \"chatbot.fullname\" . }}"
+    # - name: objects
+    #   emptyDir:
+    #     sizeLimit: 500Mi
+    - name: secrets
+      projected:
+        sources: []
+
+
     image:
       repository: ghcr.io/polecatworks/chatbot-root-mcp
       tag: main

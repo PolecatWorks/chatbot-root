@@ -107,7 +107,7 @@ spec:
             max_instances: 10
           mcps:
           - name: customers
-            url: http://localhost:8100/mcp
+            url: http://chatbot-mcp/mcp
             transport: sse
 
       hams:
