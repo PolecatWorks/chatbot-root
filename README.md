@@ -9,7 +9,6 @@ The Bot follows a communications protocol supported by the Azure Bot Framework
 * [ ] Refector the typing to replace List to list (and equivalent for other types) aligning to modern python (3.8+)
 * [ ] Consider to put MCPObjects inside LLMConversationHandler
 
-
 ## Interaction flow
 
 https://mermaid.js.org/syntax/sequenceDiagram.html
