@@ -4,6 +4,7 @@ Create a bot for MS Teams.
 
 The Bot follows a communications protocol supported by the Azure Bot Framework
 
+
 ## Things to do
 
 * [ ] Refector the typing to replace List to list (and equivalent for other types) aligning to modern python (3.8+)
