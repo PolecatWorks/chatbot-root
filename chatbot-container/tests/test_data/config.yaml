@@ -63,7 +63,7 @@ myai:
       max_instances: 10
     mcps:
     - name: customers
-      url: http://localhost:8100/mcp
+      url: http://localhost:8180/mcp
       transport: sse
 
 hams:

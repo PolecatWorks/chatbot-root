@@ -11,7 +11,10 @@ chatbot_CMD=chatbot
 mcp_CMD=mcp
 
 chatbot_PORT=8000
-mcp_PORT=8100
+mcp_PORT=8180
+
+chatbot_HEALTH_PORT=8079
+mcp_HEALTH_PORT=8179
 
 
 guard-%:
@@ -64,12 +67,12 @@ appdirs=*-container
 	$(DOCKER) build $*-container -t $*-test -f $*-container/Dockerfile --target test
 
 
-%-docker-run: %-docker
+%-dockerrun: %-docker
 	${DOCKER} run -it --rm \
 		--name $* \
-		-v $(shell pwd)/chatbot-container/tests/test_data/secrets:/opt/app/secrets \
-		-v $(shell pwd)/chatbot-container/tests/test_data/config.yaml:/opt/app/configs/config.yaml \
-		-p 8080:${$*_PORT} -p 8079:${$*_HEALTH_PORT} \
+		-v $(shell pwd)/$*-container/tests/test_data/secrets:/opt/app/secrets \
+		-v $(shell pwd)/$*-container/tests/test_data/config.yaml:/opt/app/configs/config.yaml \
+		-p ${$*_PORT}:8080 -p ${$*_HEALTH_PORT}:8079 \
 		$* \
 		start --secrets /opt/app/secrets --config /opt/app/configs/config.yaml
 

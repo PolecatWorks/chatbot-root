@@ -84,7 +84,7 @@ spec:
             transport: streamable_http
 
       hams:
-        url: http://localhost:8079
+        url: http://0.0.0.0:8079
         prefix: hams
         shutdownDuration: P0DT0H0M10S
         checks:
