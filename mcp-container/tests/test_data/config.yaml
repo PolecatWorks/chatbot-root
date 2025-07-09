@@ -23,7 +23,7 @@ logging:
 #   app_id: bot/id
 #   app_password: bot/passord
 webservice:
-  url: http://127.0.0.1:8002
+  url: http://0.0.0.0:8080
   prefix: /mcp
 myai:
   system_instruction:
@@ -43,11 +43,11 @@ myai:
       max_instances: 10
     mcps:
     - name: customers
-      url: http://localhost:8002/mcp
+      url: http://localhost:8079/mcp
       transport: streamable_http
 
 hams:
-  url: http://localhost:8179
+  url: http://0.0.0.0:8079
   prefix: hams
   shutdownDuration: P0DT0H0M10S
   checks:
