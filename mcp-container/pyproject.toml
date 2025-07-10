@@ -12,7 +12,7 @@ pydantic-yaml = {extras = ["pyyaml"], version = "^1.4"}
 prometheus-async = "^25.1"
 pydantic-file-secrets = "^0.4"
 pydantic-settings = {extras = ["yaml"], version = "^2.10"}
-aiohttp-mcp = "^0.3.0"
+aiohttp-mcp = "^0.4.1"
 
 
 [tool.poetry.group.dev.dependencies]
