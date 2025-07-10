@@ -1,5 +1,9 @@
 # Build a MS Teams Bot
 
+[![Tag Docker Image on Release](https://github.com/PolecatWorks/chatbot-root/actions/workflows/chatbot-release-docker-tag.yaml/badge.svg)](https://github.com/PolecatWorks/chatbot-root/actions/workflows/chatbot-release-docker-tag.yaml)
+
+
+
 Create a bot for MS Teams.
 
 The Bot follows a communications protocol supported by the Azure Bot Framework
