@@ -37,6 +37,7 @@ class ToolRegistry:
         self.tool_definition_dict = {
             tool.name: tool for tool in self.toolboxConfig.tools
         }
+
         self.tool_usage_metric = Summary(
             "tool_usage",
             "Summary of tool usage",

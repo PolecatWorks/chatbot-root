@@ -13,9 +13,7 @@ authors = ["Ben Greene <BenJGreene@gmail.com>"]
 readme = "README.md"
 license = "GPL3"
 repository = "https://github.com/PolecatWorks/chatbot"
-include = [
-    "LICENSE",
-]
+include = ["LICENSE"]
 
 [tool.poetry.dependencies]
 python = "^3.12"
@@ -55,3 +53,10 @@ pytest-watch = "^4.2.0"
 
 [tool.poetry.scripts]
 chatbot = "chatbot.cli:cli"
+
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = "-ra -q"
+asyncio_mode = "auto"
+testpaths = ["tests"]

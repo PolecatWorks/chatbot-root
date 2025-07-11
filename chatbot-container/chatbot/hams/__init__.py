@@ -67,6 +67,9 @@ class ReadyView(web.View):
         return web.json_response(ready, status=200 if reply else 503)
 
 
+
+
+
 class MonitorView(web.View):
     async def get(self):
         hams: Hams = self.request.app[keys.hams]

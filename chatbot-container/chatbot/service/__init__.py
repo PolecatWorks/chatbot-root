@@ -5,7 +5,7 @@ import logging
 from chatbot.service.state import Events
 from chatbot.hams import Hams, hams_app_create
 from chatbot.config import ServiceConfig
-from chatbot.service.webview import ChunkView
+from chatbot.service.webview import ChunkView, LLMChatView
 from chatbot.azurebot.webview import AzureBotView
 
 from chatbot import keys
@@ -50,12 +50,18 @@ def service_app_create(app: web.Application, config: ServiceConfig) -> web.Appli
     Create the service with the given configuration file
     """
 
-    app[keys.config] = config
+
     app[keys.events] = Events(app[keys.config].events, datetime.now(timezone.utc), 0)
 
     app.cleanup_ctx.append(service_coroutine_cleanup)
 
-    app.add_routes([web.view(f"/{config.webservice.prefix}/chunks", ChunkView)])
+    print(f"Service: {app[keys.config].webservice.url.host}:{app[keys.config].webservice.url.port}/{app[keys.config].webservice.prefix}")
+
+    app.add_routes([
+        web.view(f"/{config.webservice.prefix}/chunks", ChunkView),
+        web.view(f"/{config.webservice.prefix}/llm/chat", LLMChatView)
+        ])
+
 
     app[keys.webservice] = app
 
