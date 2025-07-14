@@ -1,7 +1,7 @@
 import os
 from aiohttp import web
 
-from chatbot import config_app_create, keys
+from chatbot import config_app_create, keys, metrics_app_create
 from chatbot.config import ServiceConfig
 from chatbot.llmconversationhandler import LLMConversationHandler, langchain_app_create
 from chatbot.mcp import mcp_app_create
@@ -25,6 +25,7 @@ def llm_app(enable_livellm):
         config: ServiceConfig = ServiceConfig.from_yaml(config_filename, secrets_dir)
 
         config_app_create(app, config)
+        metrics_app_create(app)
         mcp_app_create(app, config)
 
         langchain_app_create(app, config)

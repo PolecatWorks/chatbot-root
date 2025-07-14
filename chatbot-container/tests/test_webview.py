@@ -1,7 +1,7 @@
 
 import os
 from aiohttp import web
-from chatbot import config_app_create
+from chatbot import config_app_create, metrics_app_create
 from chatbot.service import service_app_create
 from chatbot.config import ServiceConfig
 import pytest
@@ -17,7 +17,8 @@ def create_app():
     return app
 
 
-def create_service_app():
+@pytest.fixture
+def service_app():
     app = web.Application()
 
     config_filename = "tests/test_data/config.yaml"
@@ -26,6 +27,7 @@ def create_service_app():
     config: ServiceConfig = ServiceConfig.from_yaml(config_filename, secrets_dir)
 
     config_app_create(app, config)
+    metrics_app_create(app)
     service_app_create(app, config)
 
     return app
@@ -40,8 +42,8 @@ async def test_hello(aiohttp_client):
 
 
 @pytest.fixture
-async def service_client(aiohttp_client):
-    client = await aiohttp_client(create_service_app())
+async def service_client(aiohttp_client, service_app):
+    client = await aiohttp_client(service_app)
     return client
 
 
