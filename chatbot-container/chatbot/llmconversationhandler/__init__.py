@@ -1,6 +1,6 @@
 import base64
 from typing import Any
-from collections.abc import Sequence, Callable # For List and Callable
+from collections.abc import Sequence, Callable  # For List and Callable
 from chatbot.config import MyAiConfig, ServiceConfig
 from aiohttp import web
 from chatbot import keys
@@ -48,7 +48,6 @@ async def bind_tools_when_ready(app: web.Application):
         # If the mcpobjects key is not in the app, we cannot proceed
         logger.error("MCPObjects not found in app context. Cannot bind tools.")
         raise ValueError("MCPObjects not found in app context.")
-
 
     llmHandler: LLMConversationHandler = app[keys.llmhandler]
 
@@ -124,16 +123,18 @@ class LLMConversationHandler:
         registry: CollectorRegistry | None = REGISTRY,
     ):
         self.config = config
-        self.function_registry = toolregistry.ToolRegistry(config.toolbox, registry=registry)
+        self.function_registry = toolregistry.ToolRegistry(
+            config.toolbox, registry=registry
+        )
         self.client = client
-        self.llm_summary_metric = Summary("llm_usage", "Summary of LLM usage", registry=registry)
-
+        self.llm_summary_metric = Summary(
+            "llm_usage", "Summary of LLM usage", registry=registry
+        )
 
         # Initialize the graph
         workflow = StateGraph(AgentState)
         workflow.add_node("chatbot", self._call_llm)
         # workflow.add_node("my_tools", self._call_tool)
-
 
         workflow.add_edge(START, "chatbot")
         workflow.add_edge("my_tools", "chatbot")
@@ -153,9 +154,6 @@ class LLMConversationHandler:
 
         self.memory = MemorySaver()
 
-
-
-
     @staticmethod
     def get_graph_config(conversation: ConversationAccount, **kwargs) -> RunnableConfig:
         """
@@ -174,7 +172,6 @@ class LLMConversationHandler:
         # return config_dict
         return RunnableConfig(configurable={"thread_id": conversation.id, **kwargs})
         return RunnableConfig(config_dict)
-
 
     async def _call_llm(self, state: AgentState) -> dict:
         """
@@ -231,9 +228,8 @@ class LLMConversationHandler:
 
         return langgraph.graph.END  # is also an option if imported
 
-
     def bind_tools(self):
-        """ Binds the tools to the client and initializes the ToolNode.
+        """Binds the tools to the client and initializes the ToolNode.
         This is seperated out as some of the tool elements (eg MCP) are not available until the async runtime is available.
         """
 
@@ -247,14 +243,12 @@ class LLMConversationHandler:
         # self.workflow.add_node("my_tools", self._call_tool)
         self.workflow.add_node("my_tools", self.toolnode)
 
-
     def compile(self) -> StateGraph:
         """
         Compiles the graph with the current configuration.
         This is essentiall as we want to add some tools and generate the ToolNode dynamically.
         This is useful if you want to change the graph dynamically.
         """
-
 
         self.graph = self.workflow.compile(checkpointer=self.memory)
 
@@ -264,11 +258,9 @@ class LLMConversationHandler:
 
         return self.graph
 
-
     def register_tools(self, tools: Sequence[StructuredTool]):
         """Registers the tools with the client."""
         self.function_registry.register_tools(tools)
-
 
     async def upload(
         self,
@@ -304,11 +296,8 @@ class LLMConversationHandler:
         logger.debug("File added to conversation but not sent to LLM yet.")
         return None
 
-
     async def chat(
-        self, conversation: ConversationAccount,
-        identity: str,
-        prompt: str
+        self, conversation: ConversationAccount, identity: str, prompt: str
     ) -> str:
         """Make a chat request to the AI model with the provided prompt.
         This method sends a prompt to the model and processes the response.
@@ -324,7 +313,7 @@ class LLMConversationHandler:
             str: text response for the bot
         """
 
-        graph_config = self.get_graph_config(conversation,identity=identity)
+        graph_config = self.get_graph_config(conversation, identity=identity)
         logger.debug(f"Graph config: {graph_config}")
 
         graph_input = {"messages": [HumanMessage(content=prompt)]}
@@ -334,7 +323,6 @@ class LLMConversationHandler:
 
         # Extract the final messages from the graph's output state
         final_messages = final_graph_state["messages"]
-
 
         # The last message in the final_messages list should be the AI's response
         final_response_message = final_messages[-1] if final_messages else None

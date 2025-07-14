@@ -63,7 +63,9 @@ class AzureBot(ActivityHandler):
 
     # See https://aka.ms/about-bot-activity-message to learn more about the message and other activity types.
 
-    def __init__(self, app: web.Application, registry: CollectorRegistry | None = REGISTRY):
+    def __init__(
+        self, app: web.Application, registry: CollectorRegistry | None = REGISTRY
+    ):
         super().__init__()
         self.app = app
 

@@ -50,7 +50,9 @@ class LLMChatView(web.View):
         try:
             prompt = self.request.query["prompt"]
         except KeyError:
-            return web.json_response({"error": "Missing 'prompt' query parameter"}, status=400)
+            return web.json_response(
+                {"error": "Missing 'prompt' query parameter"}, status=400
+            )
 
         llm_handler = self.request.app[keys.llmhandler]
 
@@ -64,4 +66,6 @@ class LLMChatView(web.View):
             return web.json_response({"response": ai_response})
         except Exception as e:
             logger.error(f"Error during LLM chat: {e}", exc_info=True)
-            return web.json_response({"error": "Error processing LLM request"}, status=500)
+            return web.json_response(
+                {"error": "Error processing LLM request"}, status=500
+            )

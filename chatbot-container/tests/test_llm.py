@@ -20,7 +20,9 @@ def llm_app(enable_livellm):
 
     if enable_livellm:
         config_filename = "tests/test_data/config.yaml"
-        secrets_dir = os.environ.get("TEST_SECRETS_DIR", "tests/test_data/secrets_sample")
+        secrets_dir = os.environ.get(
+            "TEST_SECRETS_DIR", "tests/test_data/secrets_sample"
+        )
 
         config: ServiceConfig = ServiceConfig.from_yaml(config_filename, secrets_dir)
 
@@ -49,14 +51,16 @@ async def llm_conversation_handler(llm_app) -> LLMConversationHandler:
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip("Skipping LLM conversation handler test as it requires solving duplicates for prometheus")
+@pytest.mark.skip(
+    "Skipping LLM conversation handler test as it requires solving duplicates for prometheus"
+)
 async def test_llm_chat(llm_conversation_handler):
     converation_account = ConversationAccount(
-        id="test-conversation",
-        name="Test Conversation",
-        conversation_type="test-type"
+        id="test-conversation", name="Test Conversation", conversation_type="test-type"
     )
-    reply = llm_conversation_handler.chat(converation_account, "my-identity", "Hello, how are you?")
+    reply = llm_conversation_handler.chat(
+        converation_account, "my-identity", "Hello, how are you?"
+    )
     assert reply is not None
 
 
@@ -70,7 +74,7 @@ async def test_llm_chat_post_valid(service_client, enable_livellm):
     payload = {
         "messages": [
             {"role": "user", "content": "Hello, how are you?"},
-            {"role": "assistant", "content": "I'm fine, thank you!"}
+            {"role": "assistant", "content": "I'm fine, thank you!"},
         ]
     }
     resp = await service_client.post("/pie/v0/llm/chat", json=payload)

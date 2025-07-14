@@ -1,4 +1,3 @@
-
 import os
 from aiohttp import web
 from chatbot import config_app_create, metrics_app_create
@@ -62,7 +61,9 @@ async def test_chunks_post_valid(service_client):
     assert resp2.status == 200
     data2 = await resp2.json()
     assert "chunks" in data2
-    assert data2["chunks"] >= 3  # Depending on implementation, could be exactly 3 or cumulative
+    assert (
+        data2["chunks"] >= 3
+    )  # Depending on implementation, could be exactly 3 or cumulative
 
 
 @pytest.mark.asyncio
@@ -85,7 +86,9 @@ async def test_chunks_post_invalid(service_client):
 @pytest.mark.asyncio
 @pytest.mark.skip("Skipping non-JSON body POST test for now")
 async def test_chunks_post_non_json(service_client):
-    resp = await service_client.post("/pie/v0/chunks", data="notjson", headers={"Content-Type": "text/plain"})
+    resp = await service_client.post(
+        "/pie/v0/chunks", data="notjson", headers={"Content-Type": "text/plain"}
+    )
     # Should return 400 or 415 depending on implementation
     assert resp.status in (400, 415)
 
@@ -106,7 +109,6 @@ async def test_chunks(service_client):
     assert resp.status == 404  # Assuming /abc is not defined in the app
     text = await resp.text()
     assert "Not Found" in text
-
 
     resp = await service_client.get("/pie/v0/chunks")
     assert resp.status == 200  # Assuming /pie/v0/chunks is defined in the service

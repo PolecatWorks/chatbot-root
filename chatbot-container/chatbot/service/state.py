@@ -29,7 +29,9 @@ class Events:
         # If time is after lastTime then subtract one from chunkCount (if greater than 0). Then schedule for
         self.chunkCount = chunkCount
         self.prometheus_registry = registry
-        self.chunkGauge = Gauge("chunk_gauge", "Count of chunks remaining", registry=registry)
+        self.chunkGauge = Gauge(
+            "chunk_gauge", "Count of chunks remaining", registry=registry
+        )
 
     def updateChunk(self, time: datetime) -> int:
         if self.lastTime < time:

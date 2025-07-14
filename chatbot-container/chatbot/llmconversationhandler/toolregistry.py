@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import Any
-from collections.abc import Sequence, Callable # For List and Callable
+from collections.abc import Sequence, Callable  # For List and Callable
 from chatbot.config.tool import ToolBoxConfig
 from langchain_core.messages.tool import ToolCall, ToolMessage
 from langchain_core.tools.structured import StructuredTool
@@ -28,7 +28,11 @@ class ToolDefinition:
 
 
 class ToolRegistry:
-    def __init__(self, toolboxConfig: ToolBoxConfig, registry: CollectorRegistry | None = REGISTRY):
+    def __init__(
+        self,
+        toolboxConfig: ToolBoxConfig,
+        registry: CollectorRegistry | None = REGISTRY,
+    ):
         self.registry: dict[str, ToolDefinition] = {}
         self.toolboxConfig = toolboxConfig
         # Load the tool definition as dict from the list form (List form is easier to manage in k8s (ie lists enable replace vs change))
@@ -82,7 +86,9 @@ class ToolRegistry:
 
         logger.debug(f"Tool registered: {tool_name}")
 
-    async def perform_tool_actions(self, parts: Sequence[ToolCall]) -> Sequence[ToolMessage]:
+    async def perform_tool_actions(
+        self, parts: Sequence[ToolCall]
+    ) -> Sequence[ToolMessage]:
         """Performs actions using the registered tools.
         Reply back with an array to match what was called
         """

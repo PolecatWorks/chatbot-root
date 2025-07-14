@@ -1,6 +1,7 @@
 import requests
 import logging
 from langchain_core.tools import InjectedToolArg, tool
+
 # from typing import Annotated # Annotated is not used
 from langchain_core.runnables import RunnableConfig
 
@@ -8,11 +9,12 @@ logger = logging.getLogger(__name__)
 
 
 @tool(parse_docstring=True)
-async def search_records_by_name(search_name: str,
-                                 config: RunnableConfig
-                                #  config: RunnableConfig,
-                                #  identity: Annotated[str, InjectedToolArg]
-                                 ) -> list[int]:
+async def search_records_by_name(
+    search_name: str,
+    config: RunnableConfig,
+    #  config: RunnableConfig,
+    #  identity: Annotated[str, InjectedToolArg]
+) -> list[int]:
     """
     Searchs for records relating to Customers
     Searches for records by name using an external API and returns their primary keys.

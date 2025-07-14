@@ -66,7 +66,7 @@ class HttpCheck(HamsCheck):
                     return response.status == self.returncode
 
 
-CheckType = HttpCheck # Replaced Union[HttpCheck] with HttpCheck as it's the only type
+CheckType = HttpCheck  # Replaced Union[HttpCheck] with HttpCheck as it's the only type
 
 
 class HamsChecks(BaseModel):

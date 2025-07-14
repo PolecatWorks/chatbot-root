@@ -107,7 +107,11 @@ class ShutdownView(web.View):
 
 class Hams:
     def __init__(
-        self, hams_app: web.Application, app: web.Application, config: HamsConfig, registry: CollectorRegistry | None = REGISTRY
+        self,
+        hams_app: web.Application,
+        app: web.Application,
+        config: HamsConfig,
+        registry: CollectorRegistry | None = REGISTRY,
     ):
         self.app = app
         self.hams_app = hams_app
