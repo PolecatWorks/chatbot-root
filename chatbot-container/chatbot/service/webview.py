@@ -2,6 +2,7 @@ from aiohttp import web
 from chatbot.service.state import Events
 from pydantic import BaseModel, ValidationError
 import logging
+from botbuilder.schema import ConversationAccount
 from chatbot import keys
 
 
@@ -42,3 +43,25 @@ class ChunkView(web.View):
         reply = ChunkState(chunks=events.chunkCount)
 
         return web.json_response(reply.model_dump())
+
+
+class LLMChatView(web.View):
+    async def get(self):
+        try:
+            prompt = self.request.query["prompt"]
+        except KeyError:
+            return web.json_response({"error": "Missing 'prompt' query parameter"}, status=400)
+
+        llm_handler = self.request.app[keys.llmhandler]
+
+        # Create a dummy ConversationAccount for now
+        # In a real application, this would involve fetching or creating user/session specific details
+        conversation_account = ConversationAccount(id="dummy_conversation_id")
+        identity = "web_user"
+
+        try:
+            ai_response = await llm_handler.chat(conversation_account, identity, prompt)
+            return web.json_response({"response": ai_response})
+        except Exception as e:
+            logger.error(f"Error during LLM chat: {e}", exc_info=True)
+            return web.json_response({"error": "Error processing LLM request"}, status=500)

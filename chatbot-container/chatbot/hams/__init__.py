@@ -5,7 +5,7 @@ from chatbot import keys
 import signal
 import asyncio
 from prometheus_async import aio
-from prometheus_client import CollectorRegistry, Counter
+from prometheus_client import REGISTRY, CollectorRegistry, Counter
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 from prometheus_client import Summary
 from prometheus_client import Info
@@ -65,6 +65,19 @@ class ReadyView(web.View):
         reply = hams.ready()
         ready = {"ready": reply}
         return web.json_response(ready, status=200 if reply else 503)
+
+
+class CustomMetricsView(web.View):
+    async def get(self):
+        metrics: CollectorRegistry = self.request.app[keys.metrics]
+
+        global_metrics = generate_latest(REGISTRY)
+        custom_metrics = generate_latest(metrics)
+
+        return web.Response(
+            body=global_metrics + custom_metrics,
+            # content_type=CONTENT_TYPE_LATEST,
+        )
 
 
 class MonitorView(web.View):
@@ -131,6 +144,7 @@ def hams_app_create(base_app: web.Application, config: HamsConfig) -> web.Applic
     hams = Hams(app, base_app, config)
     # Provide a ref back to app from HaMS
     app[keys.hams] = hams
+    app[keys.metrics] = base_app[keys.metrics]
     base_app[keys.hams] = hams
 
     logger.info(
@@ -142,6 +156,7 @@ def hams_app_create(base_app: web.Application, config: HamsConfig) -> web.Applic
             web.view(f"/{hams.config.prefix}/alive", AliveView),
             web.view(f"/{hams.config.prefix}/ready", ReadyView),
             web.view(f"/{hams.config.prefix}/monitor", MonitorView),
+            web.view(f"/{hams.config.prefix}/custommetrics", CustomMetricsView),
             web.view(f"/{hams.config.prefix}/metrics", aio.web.server_stats),
             web.view(f"/{hams.config.prefix}/shutdown", ShutdownView),
         ]

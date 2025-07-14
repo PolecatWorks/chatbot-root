@@ -1,6 +1,6 @@
 from .tool import ToolBoxConfig, ToolConfig
 from chatbot.hams.config import HamsConfig
-from pydantic import Field, BaseModel, SecretStr, field_validator, HttpUrl
+from pydantic import ConfigDict, Field, BaseModel, SecretStr, field_validator, HttpUrl
 from pydantic_settings import BaseSettings, YamlConfigSettingsSource
 from pydantic_file_secrets import FileSecretsSettingsSource
 from pathlib import Path
@@ -140,8 +140,7 @@ class LangchainConfig(BaseModel):
         default=True, description="Whether to stream responses from the model"
     )
 
-    class Config:
-        extra = "forbid"  # Prevents additional fields not defined in the model
+    model_config = ConfigDict(extra='forbid')
 
     @field_validator("model_provider")
     @classmethod

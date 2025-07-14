@@ -24,7 +24,7 @@ from langchain_core.messages import (
 from botbuilder.schema import ConversationAccount
 from langchain_core.language_models import BaseChatModel
 
-from prometheus_client import CollectorRegistry, Summary
+from prometheus_client import REGISTRY, CollectorRegistry, Summary
 from chatbot.tools import mytools
 from langchain.chat_models import init_chat_model
 import httpx
@@ -95,7 +95,9 @@ def langchain_app_create(app: web.Application, config: ServiceConfig):
     # use bind_tools_when_ready to move some of the constructions funtions to an async runtime
     app.on_startup.append(bind_tools_when_ready)
 
-    llmHandler = LLMConversationHandler(config.myai, model)
+    registry = REGISTRY if keys.metrics not in app else app[keys.metrics]
+
+    llmHandler = LLMConversationHandler(config.myai, model, registry=registry)
     llmHandler.register_tools(mytools)
 
     app[keys.llmhandler] = llmHandler
@@ -119,6 +121,7 @@ class LLMConversationHandler:
         self,
         config: MyAiConfig,
         client: BaseChatModel,
+        registry: CollectorRegistry | None = REGISTRY,
     ):
         self.config = config
         self.function_registry = toolregistry.ToolRegistry(config.toolbox)
@@ -126,7 +129,7 @@ class LLMConversationHandler:
         self.client = client
 
         # self.prometheus_registry = prometheus_registry
-        self.llm_summary_metric = Summary("llm_usage", "Summary of LLM usage")
+        self.llm_summary_metric = Summary("llm_usage", "Summary of LLM usage", registry=registry)
 
 
         # Initialize the graph
