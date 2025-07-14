@@ -1,4 +1,5 @@
 
+import os
 from aiohttp import web
 from chatbot import config_app_create
 from chatbot.service import service_app_create
@@ -20,7 +21,8 @@ def create_service_app():
     app = web.Application()
 
     config_filename = "tests/test_data/config.yaml"
-    secrets_dir = "tests/test_data/secrets"
+    secrets_dir = os.environ.get("TEST_SECRETS_DIR", "tests/test_data/secrets_sample")
+
     config: ServiceConfig = ServiceConfig.from_yaml(config_filename, secrets_dir)
 
     config_app_create(app, config)
