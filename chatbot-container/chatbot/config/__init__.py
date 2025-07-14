@@ -4,7 +4,11 @@ from pydantic import ConfigDict, Field, BaseModel, SecretStr, field_validator, H
 from pydantic_settings import BaseSettings, YamlConfigSettingsSource
 from pydantic_file_secrets import FileSecretsSettingsSource
 from pathlib import Path
-from typing import Any, Self, Literal # TODO: Review Self and Literal for Python version compatibility
+from typing import (
+    Any,
+    Self,
+    Literal,
+)  # TODO: Review Self and Literal for Python version compatibility
 from datetime import timedelta
 
 
@@ -140,7 +144,7 @@ class LangchainConfig(BaseModel):
         default=True, description="Whether to stream responses from the model"
     )
 
-    model_config = ConfigDict(extra='forbid')
+    model_config = ConfigDict(extra="forbid")
 
     @field_validator("model_provider")
     @classmethod

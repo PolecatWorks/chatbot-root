@@ -34,17 +34,19 @@ async def connect_to_mcp_server(app):
         }
     )
 
-
     mcpObjects = MCPObjects(
         tools=await client.get_tools(),
         resources={
-            mcp.name : await client.get_resources(mcp.name)
+            mcp.name: await client.get_resources(mcp.name)
             for mcp in toolbox_config.mcps
         },
         prompts={
-            mcp.name: {prompt: await client.get_prompt(mcp.name, prompt) for prompt in mcp.prompts}
+            mcp.name: {
+                prompt: await client.get_prompt(mcp.name, prompt)
+                for prompt in mcp.prompts
+            }
             for mcp in toolbox_config.mcps
-        }
+        },
     )
 
     logger.info(f"MCP Objects = {mcpObjects}")

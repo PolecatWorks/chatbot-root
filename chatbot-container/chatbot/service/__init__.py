@@ -12,7 +12,7 @@ from chatbot import keys
 from aiohttp import web
 from datetime import datetime, timezone
 
-from prometheus_client import CollectorRegistry
+from prometheus_client import REGISTRY, CollectorRegistry
 
 
 logger = logging.getLogger(__name__)
@@ -49,19 +49,24 @@ def service_app_create(app: web.Application, config: ServiceConfig) -> web.Appli
     """
     Create the service with the given configuration file
     """
+    registry = REGISTRY if keys.metrics not in app else app[keys.metrics]
 
-
-    app[keys.events] = Events(app[keys.config].events, datetime.now(timezone.utc), 0)
+    app[keys.events] = Events(
+        app[keys.config].events, datetime.now(timezone.utc), 0, registry=registry
+    )
 
     app.cleanup_ctx.append(service_coroutine_cleanup)
 
-    print(f"Service: {app[keys.config].webservice.url.host}:{app[keys.config].webservice.url.port}/{app[keys.config].webservice.prefix}")
+    print(
+        f"Service: {app[keys.config].webservice.url.host}:{app[keys.config].webservice.url.port}/{app[keys.config].webservice.prefix}"
+    )
 
-    app.add_routes([
-        web.view(f"/{config.webservice.prefix}/chunks", ChunkView),
-        web.view(f"/{config.webservice.prefix}/llm/chat", LLMChatView)
-        ])
-
+    app.add_routes(
+        [
+            web.view(f"/{config.webservice.prefix}/chunks", ChunkView),
+            web.view(f"/{config.webservice.prefix}/llm/chat", LLMChatView),
+        ]
+    )
 
     app[keys.webservice] = app
 
