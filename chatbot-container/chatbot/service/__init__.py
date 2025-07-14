@@ -12,7 +12,7 @@ from chatbot import keys
 from aiohttp import web
 from datetime import datetime, timezone
 
-from prometheus_client import CollectorRegistry
+from prometheus_client import REGISTRY, CollectorRegistry
 
 
 logger = logging.getLogger(__name__)
@@ -49,9 +49,9 @@ def service_app_create(app: web.Application, config: ServiceConfig) -> web.Appli
     """
     Create the service with the given configuration file
     """
+    registry = REGISTRY if keys.metrics not in app else app[keys.metrics]
 
-
-    app[keys.events] = Events(app[keys.config].events, datetime.now(timezone.utc), 0)
+    app[keys.events] = Events(app[keys.config].events, datetime.now(timezone.utc), 0, registry=registry)
 
     app.cleanup_ctx.append(service_coroutine_cleanup)
 

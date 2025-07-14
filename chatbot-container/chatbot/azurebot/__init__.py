@@ -20,7 +20,7 @@ from botbuilder.core import (
 )
 from chatbot.azurebot.webview import AzureBotView
 from chatbot.llmconversationhandler import LLMConversationHandler
-from prometheus_client import CollectorRegistry, Summary
+from prometheus_client import REGISTRY, CollectorRegistry, Summary
 import base64
 import aiohttp
 
@@ -63,13 +63,16 @@ class AzureBot(ActivityHandler):
 
     # See https://aka.ms/about-bot-activity-message to learn more about the message and other activity types.
 
-    def __init__(self, app: web.Application):
+    def __init__(self, app: web.Application, registry: CollectorRegistry | None = REGISTRY):
         super().__init__()
         self.app = app
+
+        self.prometheus_registry = registry
         self.chat_metric = Summary(
             "chat_usage",
             "Summary of Chat actions",
             ["action"],
+            registry=registry,
         )
 
     async def on_message_activity(self, turn_context: TurnContext):
@@ -108,15 +111,13 @@ class AzureBot(ActivityHandler):
             return
             # Optionally, you can send the base64 string or process it further here
 
-
         llmHandler: LLMConversationHandler = self.app[keys.llmhandler]
 
         with self.chat_metric.labels("on_message").time():
-
             llm_reply = await llmHandler.chat(
                 turn_context.activity.conversation,
                 "my-identity",
-                turn_context.activity.text
+                turn_context.activity.text,
             )
 
         logger.debug("LLM reply: %s", llm_reply)
@@ -143,7 +144,9 @@ def azure_app_create(app: web.Application, config: ServiceConfig) -> web.Applica
 
     app[keys.botadapter].on_turn_error = on_error
 
-    app[keys.bot] = AzureBot(app)
+    registry = REGISTRY if keys.metrics not in app else app[keys.metrics]
+
+    app[keys.bot] = AzureBot(app, registry=registry)
 
     app.add_routes([web.view(config.bot.api_path, AzureBotView)])
     logger.info(

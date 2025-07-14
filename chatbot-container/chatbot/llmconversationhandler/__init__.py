@@ -124,11 +124,8 @@ class LLMConversationHandler:
         registry: CollectorRegistry | None = REGISTRY,
     ):
         self.config = config
-        self.function_registry = toolregistry.ToolRegistry(config.toolbox)
-
+        self.function_registry = toolregistry.ToolRegistry(config.toolbox, registry=registry)
         self.client = client
-
-        # self.prometheus_registry = prometheus_registry
         self.llm_summary_metric = Summary("llm_usage", "Summary of LLM usage", registry=registry)
 
 

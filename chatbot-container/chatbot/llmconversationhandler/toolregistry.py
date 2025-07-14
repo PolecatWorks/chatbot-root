@@ -7,7 +7,7 @@ from langchain_core.tools.structured import StructuredTool
 import logging
 import asyncio
 from pydantic_yaml import to_yaml_str
-from prometheus_client import CollectorRegistry, Summary
+from prometheus_client import REGISTRY, CollectorRegistry, Summary
 
 import io
 from ruamel.yaml import YAML
@@ -28,20 +28,19 @@ class ToolDefinition:
 
 
 class ToolRegistry:
-    def __init__(self, toolboxConfig: ToolBoxConfig):
+    def __init__(self, toolboxConfig: ToolBoxConfig, registry: CollectorRegistry | None = REGISTRY):
         self.registry: dict[str, ToolDefinition] = {}
-
         self.toolboxConfig = toolboxConfig
-
         # Load the tool definition as dict from the list form (List form is easier to manage in k8s (ie lists enable replace vs change))
         self.tool_definition_dict = {
             tool.name: tool for tool in self.toolboxConfig.tools
         }
-
+        self.prometheus_registry = registry
         self.tool_usage_metric = Summary(
             "tool_usage",
             "Summary of tool usage",
             ["tool_name"],
+            registry=registry,
         )
 
     def all_tools(self) -> Sequence[StructuredTool]:

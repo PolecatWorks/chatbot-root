@@ -107,13 +107,12 @@ class ShutdownView(web.View):
 
 class Hams:
     def __init__(
-        self, hams_app: web.Application, app: web.Application, config: HamsConfig
+        self, hams_app: web.Application, app: web.Application, config: HamsConfig, registry: CollectorRegistry | None = REGISTRY
     ):
         self.app = app
         self.hams_app = hams_app
         self.config = config
-        # Create a Prometheus metrics registry for this Hams instance
-
+        self.prometheus_registry = registry
         # Example metric: count requests to alive endpoint
         self.version = "1.0.0"  # Set your service version here
 
@@ -125,6 +124,7 @@ class Hams:
         self.version_metric = Info(
             "service_version",
             "Service version information",
+            registry=registry,
         )
         self.version_metric.info({"version": version})
 
@@ -139,9 +139,10 @@ def hams_app_create(base_app: web.Application, config: HamsConfig) -> web.Applic
     """
     Create the service with the given configuration file
     """
+    registry = REGISTRY if keys.metrics not in base_app else base_app[keys.metrics]
 
     app = web.Application()
-    hams = Hams(app, base_app, config)
+    hams = Hams(app, base_app, config, registry)
     # Provide a ref back to app from HaMS
     app[keys.hams] = hams
     app[keys.metrics] = base_app[keys.metrics]
